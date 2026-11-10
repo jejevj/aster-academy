@@ -42,6 +42,16 @@ class TestRBACEnforcement(unittest.TestCase):
         self.assertFalse(handler.admin_allowed(student, "GET", "/admin"))
         self.assertFalse(handler.admin_allowed(student, "POST", "/admin/kursus/simpan"))
 
+    def test_menu_registry_groups_are_seeded_for_all_available_items(self):
+        with core.connect() as conn:
+            rows = conn.execute(
+                "SELECT route_key, group_name, icon FROM route_menu_registry WHERE active=1 ORDER BY position"
+            ).fetchall()
+
+        self.assertEqual(len(rows), 7)
+        self.assertTrue(all(row["group_name"] for row in rows))
+        self.assertTrue(all(row["icon"] for row in rows))
+
     def test_sidebar_menu_uses_only_role_visible_registry_items(self):
         handler = App.__new__(App)
         with core.connect() as conn:

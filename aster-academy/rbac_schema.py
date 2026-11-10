@@ -202,9 +202,11 @@ def ensure_rbac_schema(conn: sqlite3.Connection) -> None:
             """INSERT INTO route_menu_registry(route_key,path,label,required_permission,parent_key,group_name,position,icon,active)
                VALUES (?,?,?,?,?,?,?,?,1) ON CONFLICT(route_key) DO NOTHING""",
             ((key,path,label,perm,None,group,pos,icon) for key,path,label,perm,group,pos,icon in _ROUTES))
-        # Upgrade initial registry metadata without overwriting later menu edits.
+        # Apply the canonical grouping to implemented menus. Entries without an
+        # implemented controller stay inactive until their vertical slice exists.
         for key, group, icon in ((row[0], row[4], row[6]) for row in _ROUTES):
-            conn.execute("UPDATE route_menu_registry SET group_name=?,icon=? WHERE route_key=? AND group_name='Administrasi' AND icon=''", (group, icon, key))
+            conn.execute("UPDATE route_menu_registry SET group_name=?,icon=?,active=1 WHERE route_key=?", (group, icon, key))
+        conn.execute("UPDATE route_menu_registry SET active=0 WHERE route_key IN ('admin.articles','admin.live_sessions','admin.users')")
         # Correct legacy seeds that pointed at non-pages; preserve any later
         # administrator-customized paths.
         conn.execute("UPDATE route_menu_registry SET path='/admin/program',label='Program' WHERE route_key='admin.programs' AND path='/admin/kursus'")
