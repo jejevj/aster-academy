@@ -97,33 +97,30 @@ class App(BaseHTTPRequestHandler):
         with connect() as c:
             menu_perm=route_permission(c,user['role'],path)
             if menu_perm is False:return False
-            if menu_perm and user['role']!='super_admin':
-                if not self.can(user,menu_perm):return False
-        return bool(permissions and all(self.can(user,p) for p in permissions))
+            if menu_perm and user['role']!='super_admin' and not self.can(user,menu_perm):return False
+        if not permissions:return bool(menu_perm)
+        return all(self.can(user,p) for p in permissions)
     def sidebar_menu_html(self,conn,user,path):
         if not user:return ''
         from services.menu_service import visible_menus
         items=visible_menus(conn,user['role'])
-        path_alias={'admin.programs':'/admin/program','admin.enrollments':'/admin/permintaan-akses','admin.roles':'/admin/akses-role'}
-        group_alias={'admin.dashboard':'Ringkasan','admin.programs':'Pembelajaran','admin.enrollments':'Pembelajaran','admin.question_banks':'Evaluasi','admin.categories':'Evaluasi','admin.roles':'Pengaturan','account.profile':'Pengaturan'}
-        icon_alias={'admin.dashboard':'⌂','admin.programs':'▤','admin.enrollments':'✓','admin.question_banks':'▦','admin.categories':'◫','admin.roles':'♙','account.profile':'◎'}
         buckets={}
         for item in items:
-            key=item['route_key']; item_path=path_alias.get(key,item['path'])
-            # Avoid advertising registry entries without a corresponding app page.
-            if key in ('admin.articles','admin.live_sessions','admin.users'):continue
-            group=group_alias.get(key,item['group_name'] or 'Administrasi')
-            buckets.setdefault(group,[]).append((item,item_path))
-        group_order=('Ringkasan','Pembelajaran','Evaluasi','Pengaturan')
+            group=(item['group_name'] or 'Administrasi').strip() or 'Administrasi'
+            buckets.setdefault(group,[]).append(item)
+        preferred_groups=('Ringkasan','Pembelajaran','Evaluasi','Operasional','Pengaturan','Administrasi')
+        groups=[group for group in preferred_groups if group in buckets]
+        groups.extend(group for group in buckets if group not in groups)
         out=[]
-        for group in group_order:
-            entries=buckets.get(group,[])
-            if not entries:continue
+        for group in groups:
+            entries=buckets[group]
             links=[];active_group=False
-            for item,href in entries:
+            for item in entries:
+                href=item['path']
                 active=path==href or path.startswith(href.rstrip('/')+'/')
                 active_group|=active
-                links.append(f'<a class="{"is-active" if active else ""}" href="{e(href)}"><span class="admin-icon" aria-hidden="true">{e(item["icon"] or icon_alias.get(item["route_key"],"•"))}</span>{e(item["label"])}</a>')
+                icon=item['icon'] or '•'
+                links.append(f'<a class="{"is-active" if active else ""}" href="{e(href)}"><span class="admin-icon" aria-hidden="true">{e(icon)}</span>{e(item["label"])}</a>')
             if group=='Ringkasan':out.extend(links)
             else:out.append(f'<details class="admin-nav-group" {"open" if active_group else ""}><summary>{e(group)}<span class="nav-chevron">⌄</span></summary><div class="admin-subnav">{"".join(links)}</div></details>')
         return ''.join(out)+'<a href="/"><span class="admin-icon" aria-hidden="true">↗</span>Lihat situs</a>'
@@ -479,7 +476,7 @@ class App(BaseHTTPRequestHandler):
                     metric_rows.append(('Pelajaran',lessons,'Materi tersusun'))
                 stats=''.join(f'<article class="glass card"><p class="muted text-sm">{label}</p><p class="mt-2 text-3xl font-extrabold text-[#15345d]">{value}</p><p class="muted mt-1 text-xs">{note}</p></article>' for label,value,note in metric_rows)
                 send('admin_dashboard',{'ADMIN_COURSE_ROWS':rows if show_programs else '', 'ADMIN_RECENT_ACTIVITY':activity if show_enrollments else '', 'ADMIN_PROGRAM_BLOCK_CLASS':'' if show_programs else 'hidden','ADMIN_ENROLLMENT_BLOCK_CLASS':'' if show_enrollments else 'hidden','ADMIN_STATS':stats});return
-            if path=='/admin/akses-role':
+            if path == '/admin/akses-role':
                 matrix=self.role_matrix(c)
                 from services.menu_service import role_menu_tree
                 curr_role = query.get('role', ['admin'])[0]
@@ -492,6 +489,13 @@ class App(BaseHTTPRequestHandler):
                 menu_json=json.dumps(contract['menus'],ensure_ascii=False).replace('<','\\u003c')
                 send('admin_roles',{'ROLE_MATRIX':matrix,'ROLE_NOTICE':'','ROLE_OPTIONS_JSON':role_options,'MENU_TREE_JSON':menu_json})
                 return
+            registered = c.execute('SELECT route_key,label FROM route_menu_registry WHERE path=? AND active=1', (path,)).fetchone()
+            if registered:
+                from services.menu_scaffold import template_name_for_route_key
+                template_name = template_name_for_route_key(registered['route_key'])
+                if (TEMPLATES / f'{template_name}.html').is_file():
+                    send(template_name, {'ADMIN_PAGE_TITLE': e(registered['label'])})
+                    return
             if path=='/admin/kategori-soal':
                 profiles=c.execute('SELECT * FROM exam_rule_profiles WHERE active=1 ORDER BY year DESC,id').fetchall()
                 profile_key=query.get('profile',[''])[0]
@@ -722,7 +726,9 @@ class App(BaseHTTPRequestHandler):
                     c.execute('BEGIN IMMEDIATE')
                     if path=='/admin/menu/simpan':
                         from services.menu_service import save_menu
+                        from services.menu_scaffold import ensure_menu_scaffold
                         save_menu(c,form)
+                        ensure_menu_scaffold(TEMPLATES, form.get('route_key','').strip(), form.get('path','').strip(), form.get('label','').strip())
                     elif path=='/admin/menu/akses-role':
                         from services.menu_service import set_role_menus
                         role=form.get('role',''); keys=form.get('route_keys','').split(',') if form.get('route_keys') else []

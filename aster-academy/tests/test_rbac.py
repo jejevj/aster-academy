@@ -42,5 +42,60 @@ class TestRBACEnforcement(unittest.TestCase):
         self.assertFalse(handler.admin_allowed(student, "GET", "/admin"))
         self.assertFalse(handler.admin_allowed(student, "POST", "/admin/kursus/simpan"))
 
+    def test_sidebar_menu_uses_only_role_visible_registry_items(self):
+        handler = App.__new__(App)
+        with core.connect() as conn:
+            student_menu = handler.sidebar_menu_html(conn, {"role": "student"}, "/admin")
+            admin_menu = handler.sidebar_menu_html(conn, {"role": "admin"}, "/admin")
+
+        self.assertNotIn("Bank soal", student_menu)
+        self.assertNotIn("Akses dan role", student_menu)
+        self.assertIn("Bank soal", admin_menu)
+        self.assertIn("Pembelajaran", admin_menu)
+        self.assertIn("Evaluasi", admin_menu)
+
+    def test_registered_menu_groups_render_without_controller_aliases(self):
+        handler = App.__new__(App)
+        with core.connect() as conn:
+            conn.execute(
+                "INSERT INTO route_menu_registry(route_key,path,label,required_permission,group_name,position,icon,active) VALUES (?,?,?,?,?,?,?,1)",
+                ("admin.custom", "/admin/custom", "Menu Kustom", "dashboard.view", "Operasional", 15, "★"),
+            )
+            conn.execute(
+                "INSERT INTO role_menu_access(role_key,route_key,enabled) VALUES (?,?,1)",
+                ("admin", "admin.custom"),
+            )
+            markup = handler.sidebar_menu_html(conn, {"role": "admin"}, "/admin/custom")
+
+        self.assertIn("Operasional", markup)
+        self.assertIn("Menu Kustom", markup)
+        self.assertIn('href="/admin/custom"', markup)
+        self.assertIn('class="is-active"', markup)
+
+    def test_authorized_registered_menu_is_accessible_without_static_alias(self):
+        handler = App.__new__(App)
+        admin = {"role": "admin"}
+        with core.connect() as conn:
+            conn.execute(
+                "INSERT INTO route_menu_registry(route_key,path,label,required_permission,group_name,position,icon,active) VALUES (?,?,?,?,?,?,?,1)",
+                ("admin.custom", "/admin/custom", "Menu Kustom", "dashboard.view", "Operasional", 15, "★"),
+            )
+            conn.execute(
+                "INSERT INTO role_menu_access(role_key,route_key,enabled) VALUES (?,?,1)",
+                ("admin", "admin.custom"),
+            )
+        self.assertTrue(handler.admin_allowed(admin, "GET", "/admin/custom"))
+
+    def test_new_menu_scaffold_uses_safe_route_key_and_does_not_overwrite(self):
+        from services.menu_scaffold import ensure_menu_scaffold
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            path = ensure_menu_scaffold(root, "admin.reports", "/admin/reports", "Laporan")
+            self.assertEqual(path, root / "admin_reports.html")
+            self.assertIn("Laporan", path.read_text())
+            path.write_text("manual template")
+            self.assertEqual(ensure_menu_scaffold(root, "admin.reports", "/admin/reports", "Baru"), path)
+            self.assertEqual(path.read_text(), "manual template")
+
 if __name__ == "__main__":
     unittest.main()

@@ -79,13 +79,13 @@ _PERMISSIONS: Final = (
 # Stable route/menu registry. Permission checks remain independently enforced
 # by app.permission_for/required_permissions; these rows configure navigation.
 _ROUTES: Final = (
-    ("admin.dashboard", "/admin", "Ikhtisar", "dashboard.view", None, 10),
-    ("admin.programs", "/admin/program", "Program", "programs.view", None, 20),
-    ("admin.question_banks", "/admin/bank-soal", "Bank soal", "question_banks.view", None, 30),
-    ("admin.categories", "/admin/kategori-soal", "Kategori soal", "question_categories.view", None, 35),
-    ("admin.enrollments", "/admin/permintaan-akses", "Permintaan akses", "enrollments.view", None, 40),
-    ("admin.roles", "/admin/akses-role", "Akses dan role", "roles.view", None, 80),
-    ("account.profile", "/profil", "Profil", "profile.view", None, 90),
+    ("admin.dashboard", "/admin", "Ikhtisar", "dashboard.view", "Ringkasan", 10, "⌂"),
+    ("admin.programs", "/admin/program", "Program", "programs.view", "Pembelajaran", 20, "▤"),
+    ("admin.question_banks", "/admin/bank-soal", "Bank soal", "question_banks.view", "Evaluasi", 30, "▦"),
+    ("admin.categories", "/admin/kategori-soal", "Kategori soal", "question_categories.view", "Evaluasi", 35, "◫"),
+    ("admin.enrollments", "/admin/permintaan-akses", "Permintaan akses", "enrollments.view", "Pembelajaran", 40, "✓"),
+    ("admin.roles", "/admin/akses-role", "Akses dan role", "roles.view", "Pengaturan", 80, "♙"),
+    ("account.profile", "/profil", "Profil", "profile.view", "Pengaturan", 90, "◎"),
 )
 
 
@@ -201,7 +201,10 @@ def ensure_rbac_schema(conn: sqlite3.Connection) -> None:
         conn.executemany(
             """INSERT INTO route_menu_registry(route_key,path,label,required_permission,parent_key,group_name,position,icon,active)
                VALUES (?,?,?,?,?,?,?,?,1) ON CONFLICT(route_key) DO NOTHING""",
-            ((key,path,label,perm,None,'Administrasi',pos,'') for key,path,label,perm,parent,pos in _ROUTES))
+            ((key,path,label,perm,None,group,pos,icon) for key,path,label,perm,group,pos,icon in _ROUTES))
+        # Upgrade initial registry metadata without overwriting later menu edits.
+        for key, group, icon in ((row[0], row[4], row[6]) for row in _ROUTES):
+            conn.execute("UPDATE route_menu_registry SET group_name=?,icon=? WHERE route_key=? AND group_name='Administrasi' AND icon=''", (group, icon, key))
         # Correct legacy seeds that pointed at non-pages; preserve any later
         # administrator-customized paths.
         conn.execute("UPDATE route_menu_registry SET path='/admin/program',label='Program' WHERE route_key='admin.programs' AND path='/admin/kursus'")
