@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eff6ff">
+  <title>Profil Pengelola · Aster Academy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{color-scheme:light;--ink:#12233f;--muted:#64748b;--line:#dce6f2;--blue:#2563eb}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#eff6ff 0,#f8fbff 340px,#f6f8fc 100%);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body:before{content:"";position:fixed;inset:0 0 auto;height:7px;background:linear-gradient(90deg,#1d4ed8,#60a5fa,#93c5fd);z-index:20}
+    a{color:inherit;text-decoration:none}
+    .admin-shell{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100vh;background:#f6f8fc}
+    .admin-sidebar{position:sticky;top:0;display:flex;height:100vh;flex-direction:column;border-right:1px solid #e2eaf4;background:#fff;padding:22px 16px}
+    .admin-brand{display:flex;align-items:center;gap:11px;padding:2px 9px 26px;color:#15345d;font-weight:800;letter-spacing:-.02em}
+    .admin-mark{display:grid;width:38px;height:38px;place-items:center;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:800}
+    .admin-label{padding:0 11px;color:#94a3b8;font-size:10px;font-weight:800;letter-spacing:.16em}
+    .admin-nav{display:grid;gap:5px;margin-top:10px}
+    .admin-nav a{display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px;color:#52657f;font-size:14px;font-weight:650}
+    .admin-nav a:hover,.admin-nav a.is-active{background:#eff6ff;color:#1d4ed8}
+    .admin-icon{display:grid;width:27px;height:27px;place-items:center;border-radius:8px;background:#f1f5f9;color:#52657f;font-size:14px}
+    .admin-nav a.is-active .admin-icon{background:#dbeafe;color:#1d4ed8}
+    .admin-side-bottom{margin-top:auto;border-top:1px solid #edf1f6;padding:16px 8px 2px}
+    .admin-user{overflow:hidden;color:#15345d;font-size:13px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+    .admin-side-bottom a{display:block;margin-top:11px;color:#64748b;font-size:12px}
+    .admin-main{min-width:0}
+    .admin-topbar{position:sticky;top:0;z-index:10;display:flex;min-height:76px;align-items:center;justify-content:space-between;border-bottom:1px solid #e2eaf4;background:rgba(255,255,255,.94);padding:12px clamp(20px,4vw,48px);backdrop-filter:blur(12px)}
+    .admin-top-title{color:#15345d;font-size:14px;font-weight:700}
+    .admin-top-caption{margin-top:3px;color:#94a3b8;font-size:11px}
+    .admin-page{max-width:1120px;margin:0 auto;padding:34px clamp(20px,4vw,48px) 60px}
+    .page-kicker{margin:0;color:#64748b;font-size:13px;letter-spacing:.06em}
+    h1,h2{color:#142644;letter-spacing:-.025em}
+    .panel{border:1px solid #e0e8f2;border-radius:20px;background:#fff;padding:clamp(20px,3vw,30px);box-shadow:0 14px 38px rgba(31,61,99,.06)}
+    .field{display:block;width:100%;margin-top:8px;border:1px solid #cbd8e8;border-radius:12px;background:#fff;padding:12px 14px;color:#142644;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+    .field:focus{border-color:#3b82f6;outline:3px solid #bfdbfe}
+    .field-label{display:block;color:#334155;font-size:14px;font-weight:650}
+    .help{margin:7px 0 0;color:#64748b;font-size:13px;line-height:1.55}
+    .btn{display:inline-flex;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:12px;background:linear-gradient(110deg,#1d4ed8,#3b82f6);padding:10px 17px;color:#fff;font-size:14px;font-weight:700;box-shadow:0 7px 16px rgba(37,99,235,.18);cursor:pointer}
+    .btn:hover{filter:brightness(1.04)}
+    .btn-secondary{display:inline-flex;min-height:42px;align-items:center;justify-content:center;border:1px solid #d5dfec;border-radius:12px;background:#fff;padding:9px 14px;color:#29405f;font-size:13px;font-weight:650;cursor:pointer}
+    .notice{border-radius:12px;padding:13px 15px;font-size:14px;line-height:1.5}
+    .notice-error{border:1px solid #fecaca;background:#fff7f7;color:#b42318}
+    .notice-success{border:1px solid #bbf7d0;background:#f0fdf4;color:#166534}
+    .admin-footer{border-top:1px solid #e2eaf4;padding:18px clamp(20px,4vw,48px);color:#94a3b8;font-size:12px}
+    .admin-logout{border:0;background:transparent;padding:0;font:inherit;cursor:pointer}
+    @media(max-width:1040px){.admin-shell{grid-template-columns:1fr}.admin-sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid #e2eaf4;padding:14px 16px}.admin-brand{padding:0 5px 12px}.admin-label,.admin-side-bottom{display:none}.admin-nav{display:flex;flex-wrap:wrap;gap:4px;margin-top:0}.admin-nav a{flex:none;white-space:nowrap}.admin-nav a .admin-icon{width:24px;height:24px}.admin-topbar{position:relative;min-height:58px}}
+    @media(max-width:520px){.admin-nav a{gap:7px;padding:9px;font-size:12px}.admin-page{padding:24px 16px 44px}.admin-topbar{gap:8px;padding-right:16px;padding-left:16px}.admin-top-caption{font-size:10px}}
+  </style>
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="/admin"><span class="admin-mark" aria-hidden="true">A</span><span>Aster Academy</span></a>
+      <p class="admin-label">RUANG PENGELOLA</p>
+      <nav class="admin-nav" aria-label="Navigasi admin">
+        <a class="{{NAV_DASHBOARD_CLASS}}" href="/admin"><span class="admin-icon" aria-hidden="true">⌂</span>Ikhtisar</a>
+        <a class="{{NAV_PROGRAM_CLASS}}" href="/admin#programs"><span class="admin-icon" aria-hidden="true">▤</span>Program</a>
+        <a class="{{NAV_ENROLLMENTS_CLASS}}" href="/admin#requests"><span class="admin-icon" aria-hidden="true">✓</span>Permintaan akses</a>
+        <a class="{{NAV_PROGRAM_CREATE_CLASS}}" href="/admin/kursus/baru"><span class="admin-icon" aria-hidden="true">＋</span>Tambah program</a>
+        <a class="{{NAV_BANK_CLASS}}" href="/admin/bank-soal"><span class="admin-icon" aria-hidden="true">▦</span>Bank Soal</a><a class="{{NAV_ROLES_CLASS}}" href="/admin/akses-role"><span class="admin-icon" aria-hidden="true">♙</span>Akses &amp; Role</a>
+        <a class="is-active {{NAV_PROFILE_CLASS}}" href="/profil" aria-current="page"><span class="admin-icon" aria-hidden="true">◎</span>Profil</a>
+      </nav>
+      
+      <div class="admin-side-bottom">
+        <div class="admin-user">{{USER_NAME}}</div>
+        <a href="/">← Lihat situs</a>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div><div class="admin-top-title">Administrasi Aster Academy</div><div class="admin-top-caption">Pengaturan akun pengelola</div></div>
+        <div class="flex items-center gap-3"><span class="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{{USER_ROLE_LABEL}}</span><a class="btn-secondary" href="/">Lihat situs ↗</a></div>
+      </header>
+
+      <main class="admin-page">
+        <p class="page-kicker">PENGATURAN AKUN</p>
+        <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div><h1 class="m-0 text-3xl font-bold">Profil pengelola</h1><p class="mt-2 mb-0 text-sm text-slate-500">Perbarui informasi akun dan keamanan kata sandi.</p></div>
+        </div>
+
+        <div class="mt-6 space-y-6">
+          {{PROFILE_ERROR}}
+          {{PROFILE_MESSAGE}}
+          {{PROFILE_READONLY_NOTICE}}
+
+          <section class="panel" aria-labelledby="profile-info-heading">
+            <div class="mb-6 border-b border-slate-100 pb-4"><h2 id="profile-info-heading" class="m-0 text-xl font-semibold">Informasi akun</h2><p class="help">Nama dan email ini digunakan untuk mengenali akun pengelola.</p></div>
+            <form action="/profil/update" method="post" class="space-y-5 {{PROFILE_UPDATE_CLASS}}">
+              <label class="field-label" for="display-name">Nama tampilan<input class="field" id="display-name" name="display_name" type="text" value="{{USER_NAME}}" autocomplete="name" maxlength="100" required></label>
+              <label class="field-label" for="email">Alamat email<input class="field" id="email" name="email" type="email" value="{{USER_EMAIL}}" autocomplete="email" maxlength="254" required></label>
+              <div class="flex flex-wrap items-center gap-3"><button class="btn" type="submit">Simpan perubahan</button><span class="text-sm text-slate-500">Perubahan berlaku setelah disimpan.</span></div>
+            </form>
+          </section>
+
+          <section class="panel" aria-labelledby="password-heading">
+            <div class="mb-6 border-b border-slate-100 pb-4"><h2 id="password-heading" class="m-0 text-xl font-semibold">Ubah kata sandi</h2><p class="help">Masukkan kata sandi saat ini, lalu pilih kata sandi baru.</p></div>
+            <form action="/profil/password" method="post" class="space-y-5 {{PROFILE_UPDATE_CLASS}}">
+              <label class="field-label" for="current-password">Kata sandi saat ini<input class="field" id="current-password" name="current_password" type="password" autocomplete="current-password" required></label>
+              <div class="grid gap-5 sm:grid-cols-2">
+                <label class="field-label" for="new-password">Kata sandi baru<input class="field" id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="10" required><span class="help">Gunakan minimal 10 karakter.</span></label>
+                <label class="field-label" for="confirm-password">Ulangi kata sandi baru<input class="field" id="confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="10" required></label>
+              </div>
+              <button class="btn" type="submit">Perbarui kata sandi</button>
+            </form>
+          </section>
+
+          <section class="panel flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="logout-heading">
+            <div><h2 id="logout-heading" class="m-0 text-lg font-semibold">Keluar dari akun</h2><p class="help">Akhiri sesi pengelola pada perangkat ini.</p></div>
+            <form action="/logout" method="post">
+              <button class="btn-secondary" type="submit">Keluar</button>
+            </form>
+          </section>
+        </div>
+      </main>
+      <footer class="admin-footer">© 2026 Aster Academy · Belajar terarah, melangkah percaya diri.</footer>
+    </div>
+  </div>
+</body>
+</html>

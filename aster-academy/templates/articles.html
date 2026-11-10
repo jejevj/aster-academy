@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8fc"><title>Pusat informasi · Aster Academy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>:root{color-scheme:light}body{background:#f5f8fc;color:#14233b}.muted{color:#697991}.field{width:100%;border:1px solid #d9e2ef;background:#fff;border-radius:.8rem;padding:.8rem 1rem;color:#14233b}.field:focus{outline:3px solid #bfdbfe;outline-offset:1px;border-color:#3b82f6}.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:.8rem;background:linear-gradient(135deg,#2878e8,#1554c0);padding:.75rem 1.1rem;font-weight:700;color:#fff}.btn-secondary{border:1px solid #d9e2ef;border-radius:.8rem;padding:.7rem 1rem;color:#233c60;background:#fff}.glass,.article-card{display:flex;min-height:14rem;flex-direction:column;border:1px solid #dce5f0;border-radius:1rem;background:#fff;padding:1.35rem;transition:transform .18s,border-color .18s,box-shadow .18s}.card{margin-bottom:.75rem}.tag{display:inline-block;border-radius:999px;background:#eff6ff;padding:.25rem .65rem;color:#1d4ed8;font-size:.78rem;font-weight:700}.glass:hover,.article-card:hover{transform:translateY(-2px);border-color:#9fc4f5;box-shadow:0 12px 28px rgba(24,55,97,.08)}
+/* Aster light card system: consistent contrast, spacing and empty slots */
+main a.group{display:block;min-width:0;overflow:hidden;border:1px solid #dbe4f0;border-radius:1rem;background:#fff;color:#172b4d;box-shadow:0 6px 20px rgba(31,61,99,.06)}
+main a.group>div:first-child{background:#edf4ff}
+main a.group>div:last-child{padding:1.25rem}
+main a.group [class~="text-slate-600"]{color:#475569}
+main a.group [class~="text-slate-500"]{color:#64748b}
+main a.group [class~="text-blue-700"]{color:#1d4ed8}
+main .glass,main .schedule-event,main .article-card{border:1px solid #dbe4f0;border-radius:1rem;background:#fff;color:#172b4d;padding:1.25rem;box-shadow:0 6px 20px rgba(31,61,99,.06)}
+main .card{margin:0}
+main .glass [class~="text-slate-300"],main .glass [class~="text-emerald-200"],main .glass [class~="text-sky-200"]{color:#1d4ed8}
+main .glass [class~="text-white/55"]{color:#526581}
+main [data-empty]:empty::before{content:attr(data-empty);display:block;border:1px dashed #b9c8dc;border-radius:1rem;background:#fff;padding:1.5rem;color:#526581;line-height:1.6}
+main .card-grid:has(> :only-child){grid-template-columns:minmax(0,1fr)}
+main .card-grid:has(> :only-child)>:only-child{grid-column:1/-1;width:min(100%,44rem);justify-self:center}
+main .space-y-3>.muted:only-child,main .space-y-2>.muted:only-child{border:1px dashed #b9c8dc;border-radius:1rem;background:#fff;padding:1.25rem;color:#526581}
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<header class="border-b border-slate-200 bg-white"><div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4"><a href="/" class="flex items-center gap-2 font-bold tracking-tight" aria-label="Aster Academy beranda"><span class="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-white">A</span>Aster Academy</a><nav aria-label="Navigasi utama" class="hidden items-center gap-6 text-sm text-slate-600 md:flex"><a href="/program">Program</a><a href="/tryout">Tryout</a><a href="/jadwal">Jadwal</a><a href="/artikel" aria-current="page" class="font-semibold text-blue-700">Artikel</a></nav><div class="flex gap-2">{{PUBLIC_AUTH_ACTIONS}}</div></div></header>
+<main class="mx-auto max-w-7xl px-5 pb-20 pt-10 md:pt-14">
+  <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 px-6 py-10 text-white sm:px-10 sm:py-14"><div class="relative max-w-3xl"><p class="text-xs font-bold uppercase tracking-[.2em] text-blue-200">Pusat informasi Aster</p><h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">Bekal kecil untuk langkah besar.</h1><p class="mt-4 max-w-2xl leading-7 text-blue-100">Strategi belajar, panduan seleksi, dan kabar terbaru untuk menemani persiapanmu.</p><form action="/artikel" method="get" class="mt-7 flex max-w-xl flex-col gap-2 rounded-2xl bg-white p-2 sm:flex-row"><label class="sr-only" for="q">Cari artikel</label><input id="q" class="field border-0 bg-transparent focus:outline-none focus:ring-0" name="q" value="{{QUERY}}" placeholder="Cari topik atau kata kunci…"><button class="btn shrink-0" type="submit">Cari informasi</button></form></div><div class="pointer-events-none absolute -right-12 -top-20 hidden h-72 w-72 rounded-full border border-white/10 sm:block"></div><div class="pointer-events-none absolute -right-2 -top-10 hidden h-52 w-52 rounded-full border border-white/10 sm:block"></div></section>
+  <section class="mt-10"><div class="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Baca dan siapkan diri</p><h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Artikel terbaru</h2></div><p class="text-sm text-slate-500">Wawasan praktis dari tim Aster</p></div><div class="card-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-empty="Belum ada artikel yang cocok dengan pencarian ini.">{{ARTICLE_CARDS}}</div><nav class="mt-8 flex justify-center gap-3" aria-label="Halaman artikel">{{PAGINATION}}</nav></section>
+  <section class="mt-12 flex flex-col justify-between gap-5 rounded-2xl border border-blue-100 bg-blue-50 p-6 sm:flex-row sm:items-center sm:p-8"><div><p class="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Belajar dengan arah</p><h2 class="mt-2 text-xl font-bold text-slate-900">Butuh rencana belajar yang lebih terstruktur?</h2><p class="muted mt-2">Kenali program persiapan yang sesuai dengan tujuanmu.</p></div><a href="/program" class="btn shrink-0">Lihat program <span class="ml-2" aria-hidden="true">→</span></a></section>
+</main>
+<footer class="border-t border-slate-200 bg-white"><div class="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-8 text-sm muted sm:flex-row sm:justify-between"><span>© {{YEAR}} Aster Academy</span><span>Belajar terarah, melangkah percaya diri.</span></div></footer>
+</body></html>

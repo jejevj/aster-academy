@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07152d"><title>Editor pelajaran · Aster Academy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{background:radial-gradient(ellipse at 82% 0%,rgba(37,99,235,.19),transparent 42%),#07152d}.glass{background:rgba(15,35,68,.72);border:1px solid rgba(148,183,255,.14);backdrop-filter:blur(18px)}.muted{color:#9aacca}.field{width:100%;border:1px solid rgba(148,183,255,.2);background:rgba(4,17,39,.62);border-radius:.8rem;padding:.8rem 1rem;color:#eaf1ff}.field:focus{outline:2px solid #60a5fa;outline-offset:1px}.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:.8rem;background:linear-gradient(135deg,#3b82f6,#2563eb);padding:.75rem 1.1rem;font-weight:700;color:white}.btn-secondary{border:1px solid rgba(148,183,255,.23);border-radius:.8rem;padding:.7rem 1rem;color:#dce8ff}.card{border-radius:1.25rem;padding:1.25rem}.tag{border:1px solid rgba(96,165,250,.25);background:rgba(37,99,235,.12);border-radius:999px;padding:.25rem .65rem;color:#bfdbfe;font-size:.78rem}
+  :root{color-scheme:light;--ink:#12233f;--muted:#64748b;--line:#dce6f2;--blue:#2563eb}
+  body{background:linear-gradient(180deg,#eff6ff 0,#f8fbff 340px,#f6f8fc 100%)!important;color:var(--ink)!important}
+  body:before{content:"";position:fixed;inset:0 0 auto;height:7px;background:linear-gradient(90deg,#1d4ed8,#60a5fa,#93c5fd);z-index:20}
+  header{background:rgba(255,255,255,.9);border:1px solid #e2eaf4;border-radius:18px;box-shadow:0 8px 28px rgba(28,65,112,.06);margin-top:22px!important;padding:14px 20px!important}
+  header a,nav a{color:#334155!important} header a:hover,nav a:hover{color:#1d4ed8!important}
+  main{padding-top:42px!important;padding-bottom:72px!important}
+  h1,h2,h3{color:#142644!important;letter-spacing:-.025em}
+  p,.muted{color:#64748b!important}
+  .glass{background:#fff!important;border:1px solid #e0e8f2!important;backdrop-filter:none!important;box-shadow:0 14px 38px rgba(31,61,99,.07)!important;color:#172b4d!important}
+  .card{border-radius:20px!important;padding:24px!important}
+  .field{background:#fff!important;border:1px solid #cbd8e8!important;border-radius:12px!important;color:#142644!important;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+  .field::placeholder{color:#94a3b8}.field:focus{outline:3px solid #bfdbfe!important;border-color:#3b82f6!important}
+  .btn{background:linear-gradient(110deg,#1d4ed8,#3b82f6)!important;border:0!important;border-radius:12px!important;box-shadow:0 7px 16px rgba(37,99,235,.2);transition:transform .15s,box-shadow .15s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(37,99,235,.25)}
+  .btn-secondary{background:#fff!important;border:1px solid #d5dfec!important;border-radius:12px!important;color:#29405f!important}
+  .tag{background:#eff6ff!important;border:1px solid #dbeafe!important;color:#1d4ed8!important}
+  table thead{background:#f1f6fc;color:#52657f!important} table th{font-weight:600} table td{border-top:1px solid #edf1f6}
+  input[type=checkbox],input[type=radio]{accent-color:#2563eb}
+  footer{border-color:#e2e8f0!important;background:rgba(255,255,255,.55)}
+
+  .text-white,.text-slate-100,.text-slate-200,.text-slate-300{color:#263b59!important}
+  .text-slate-400,.text-slate-500{color:#64748b!important}
+  .text-blue-300,.text-blue-400{color:#1d4ed8!important}
+  .border-white\/10,.border-white\/20{border-color:#e2e8f0!important}
+  iframe{border:0}
+  @media(max-width:640px){header{margin-left:16px!important;margin-right:16px!important}main{padding-top:28px!important}.card{padding:19px!important}}
+
+
+  .admin-shell{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100vh;background:#f6f8fc}
+  .admin-sidebar{position:sticky;top:0;display:flex;height:100vh;flex-direction:column;border-right:1px solid #e2eaf4;background:#fff;padding:22px 16px}
+  .admin-brand{display:flex;align-items:center;gap:11px;padding:2px 9px 26px;color:#15345d;font-weight:800;letter-spacing:-.02em}
+  .admin-mark{display:grid;width:38px;height:38px;place-items:center;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:800}
+  .admin-label{padding:0 11px;color:#94a3b8;font-size:10px;font-weight:800;letter-spacing:.16em}
+  .admin-nav{display:grid;gap:5px;margin-top:10px}
+  .admin-nav a{display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px;color:#52657f!important;font-size:14px;font-weight:650;text-decoration:none}
+  .admin-nav a:hover,.admin-nav a.is-active,.admin-nav button:hover{background:#eff6ff;color:#1d4ed8!important}
+  .admin-icon{display:grid;width:27px;height:27px;place-items:center;border-radius:8px;background:#f1f5f9;color:#52657f;font-size:14px}
+  .admin-nav a.is-active .admin-icon{background:#dbeafe;color:#1d4ed8}
+  .admin-side-bottom{margin-top:auto;border-top:1px solid #edf1f6;padding:16px 8px 2px}
+  .admin-user{overflow:hidden;color:#15345d;font-size:13px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+  .admin-side-bottom a{display:block;margin-top:11px;color:#64748b!important;font-size:12px;text-decoration:none}
+  .admin-logout{border:0;background:transparent;padding:0;color:#64748b;font:inherit;font-size:12px;cursor:pointer}.admin-logout:hover{color:#dc2626}.admin-main{min-width:0}
+  .admin-topbar{position:sticky;top:0;z-index:10;display:flex;min-height:76px;align-items:center;justify-content:space-between;border:0;border-bottom:1px solid #e2eaf4;border-radius:0;background:rgba(255,255,255,.94);box-shadow:none;margin:0!important;padding:12px clamp(20px,4vw,48px)!important;backdrop-filter:blur(12px)}
+  .admin-top-title{color:#15345d;font-size:14px;font-weight:700}
+  .admin-top-caption{margin-top:3px;color:#94a3b8;font-size:11px}
+  .admin-page{max-width:1440px;margin:0 auto;padding:34px clamp(20px,4vw,48px) 60px!important}
+  .admin-page section[id]{scroll-margin-top:96px}
+  .admin-footer{border-top:1px solid #e2eaf4;padding:18px clamp(20px,4vw,48px);color:#94a3b8;font-size:12px}
+  @media(max-width:1040px){.admin-shell{grid-template-columns:1fr}.admin-sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid #e2eaf4;padding:14px 16px}.admin-brand{padding:0 5px 12px}.admin-label,.admin-side-bottom{display:none}  .admin-nav{display:flex;flex-wrap:wrap;overflow:visible;margin-top:0;padding-bottom:2px}.admin-nav a{flex:none;white-space:nowrap}.admin-nav a .admin-icon{width:24px;height:24px}.admin-topbar{position:relative;min-height:58px}.admin-page{padding-top:24px!important}}
+  @media(max-width:520px){.admin-nav a{gap:7px;padding:9px;font-size:12px}.admin-page{padding-right:16px!important;padding-left:16px!important}.admin-page .card{padding:18px!important}}
+
+</style>
+</head>
+<body class="min-h-screen text-slate-100 antialiased">
+<div class="admin-shell"><aside class="admin-sidebar"><a class="admin-brand" href="/admin"><span class="admin-mark">A</span><span>Aster Academy</span></a><p class="admin-label">RUANG PENGELOLA</p><nav class="admin-nav" aria-label="Navigasi admin"><a class="{{ADMIN_DASHBOARD_ACTIVE}} {{NAV_DASHBOARD_CLASS}}" href="/admin"><span class="admin-icon" aria-hidden="true">⌂</span>Ikhtisar</a><a class="{{ADMIN_PROGRAM_ACTIVE}} {{NAV_PROGRAM_CLASS}}" href="/admin#programs"><span class="admin-icon" aria-hidden="true">▤</span>Program</a><a class="{{NAV_ENROLLMENTS_CLASS}}" href="/admin#requests"><span class="admin-icon" aria-hidden="true">✓</span>Permintaan akses</a><a class="{{NAV_PROGRAM_CREATE_CLASS}}" href="/admin/kursus/baru"><span class="admin-icon" aria-hidden="true">＋</span>Tambah program</a><a class="{{ADMIN_BANK_ACTIVE}} {{NAV_BANK_CLASS}}" href="/admin/bank-soal"><span class="admin-icon" aria-hidden="true">▦</span>Bank Soal</a><a class="{{NAV_ROLES_CLASS}}" href="/admin/akses-role"><span class="admin-icon" aria-hidden="true">♙</span>Akses &amp; Role</a><a class="{{ADMIN_PROFILE_ACTIVE}} {{NAV_PROFILE_CLASS}}" href="/profil"><span class="admin-icon" aria-hidden="true">◎</span>Profil</a><a href="/"><span class="admin-icon" aria-hidden="true">↗</span>Lihat situs</a></nav><div class="admin-side-bottom"><div class="admin-user">{{USER_NAME}}</div><a href="/">← Lihat situs</a><form class="mt-3" method="post" action="/logout"><button class="admin-logout" type="submit">Keluar dari akun</button></form></div></aside><div class="admin-main"><header class="admin-topbar"><div><div class="admin-top-title">Administrasi Aster Academy</div><div class="admin-top-caption">Kelola program dan akses belajar</div></div><div class="flex items-center gap-3"><span class="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{{USER_ROLE_LABEL}}</span><a class="btn-secondary text-sm" href="/">Lihat situs ↗</a></div></header>
+<main class="admin-page"><a class="muted text-sm" href="/admin/kursus/{{COURSE_TOKEN}}/edit">← Kembali ke kursus</a><h1 class="mt-4 text-3xl font-bold">{{FORM_HEADING}}</h1><form action="{{FORM_ACTION}}" method="post" class="glass card mt-6 max-w-2xl space-y-5">{{FORM_ERROR}}<input type="hidden" name="module_id" value="{{MODULE_ID}}"><input type="hidden" name="lesson_id" value="{{LESSON_ID}}"><label class="block text-sm">Judul pelajaran<input class="field mt-2" name="title" required value="{{LESSON_TITLE}}"></label><label class="block text-sm">Ringkasan<textarea class="field mt-2" name="description" rows="3">{{LESSON_DESCRIPTION}}</textarea></label><label class="block text-sm">YouTube video ID<input class="field mt-2" name="youtube_id" value="{{YOUTUBE_ID}}" placeholder="mis. AbCdEf12345"><span class="muted mt-1 block text-xs">Gunakan video Unlisted dan masukkan ID, bukan seluruh URL.</span></label><label class="block text-sm">Durasi (menit)<input class="field mt-2" type="number" name="duration_minutes" min="0" value="{{LESSON_DURATION}}"></label><label class="block text-sm">Urutan<input class="field mt-2" type="number" name="position" min="1" value="{{LESSON_POSITION}}"></label><label class="block text-sm">Materi tambahan / URL sumber<textarea class="field mt-2" name="resources" rows="3">{{LESSON_RESOURCES}}</textarea></label><label class="flex items-center gap-3 text-sm"><input type="checkbox" name="is_published" value="1" {{LESSON_PUBLISHED_CHECKED}}> Terbitkan pelajaran</label><div class="flex gap-3"><button class="btn" type="submit">Simpan pelajaran</button><a class="btn-secondary" href="/admin/kursus/{{COURSE_TOKEN}}/edit">Batal</a></div></form></main>
+<footer class="admin-footer">© {{YEAR}} Aster Academy · Belajar terarah, melangkah percaya diri.</footer></div></div>
+</body></html>

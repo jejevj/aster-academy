@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8fc"><title>{{ARTICLE_TITLE}} · Aster Academy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>:root{color-scheme:light}body{background:#f5f8fc;color:#14233b}.muted{color:#697991}.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:.8rem;background:linear-gradient(135deg,#2878e8,#1554c0);padding:.75rem 1.1rem;font-weight:700;color:#fff}.btn-secondary{border:1px solid #d9e2ef;border-radius:.8rem;padding:.7rem 1rem;color:#233c60;background:#fff}.prose-aster{color:#35465f;font-size:1.0625rem;line-height:1.9}.prose-aster p{margin:0 0 1.25rem}.prose-aster a{color:#1554c0;text-decoration:underline}.prose-aster h2,.prose-aster h3{color:#14233b;font-weight:700;letter-spacing:-.02em;margin:2rem 0 .75rem;line-height:1.3}.prose-aster h2{font-size:1.5rem}.prose-aster h3{font-size:1.25rem}
+  
+/* Aster light card system: consistent contrast, spacing and empty slots */
+main a.group{display:block;min-width:0;overflow:hidden;border:1px solid #dbe4f0;border-radius:1rem;background:#fff;color:#172b4d;box-shadow:0 6px 20px rgba(31,61,99,.06)}
+main a.group>div:first-child{background:#edf4ff}
+main a.group>div:last-child{padding:1.25rem}
+main a.group [class~="text-slate-600"]{color:#475569}
+main a.group [class~="text-slate-500"]{color:#64748b}
+main a.group [class~="text-blue-700"]{color:#1d4ed8}
+main .glass,main .schedule-event,main .article-card{border:1px solid #dbe4f0;border-radius:1rem;background:#fff;color:#172b4d;padding:1.25rem;box-shadow:0 6px 20px rgba(31,61,99,.06)}
+main .card{margin:0}
+main .glass [class~="text-slate-300"],main .glass [class~="text-emerald-200"],main .glass [class~="text-sky-200"]{color:#1d4ed8}
+main .glass [class~="text-white/55"]{color:#526581}
+main [data-empty]:empty::before{content:attr(data-empty);display:block;border:1px dashed #b9c8dc;border-radius:1rem;background:#fff;padding:1.5rem;color:#526581;line-height:1.6}
+main .card-grid:has(> :only-child){grid-template-columns:minmax(0,1fr)}
+main .card-grid:has(> :only-child)>:only-child{grid-column:1/-1;width:min(100%,44rem);justify-self:center}
+main .space-y-3>.muted:only-child,main .space-y-2>.muted:only-child{border:1px dashed #b9c8dc;border-radius:1rem;background:#fff;padding:1.25rem;color:#526581}
+</style>
+</head>
+<body class="min-h-screen antialiased">
+<header class="border-b border-slate-200 bg-white"><div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4"><a href="/" class="flex items-center gap-2 font-bold tracking-tight" aria-label="Aster Academy beranda"><span class="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-white">A</span>Aster Academy</a><nav aria-label="Navigasi utama" class="hidden items-center gap-6 text-sm text-slate-600 md:flex"><a href="/program">Program</a><a href="/tryout">Tryout</a><a href="/jadwal">Jadwal</a><a href="/artikel" aria-current="page" class="font-semibold text-blue-700">Artikel</a></nav><div class="flex gap-2">{{PUBLIC_AUTH_ACTIONS}}</div></div></header>
+<main class="mx-auto max-w-7xl px-5 pb-20 pt-8 md:pt-12">
+  <div class="mx-auto max-w-3xl"><a href="/artikel" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"><span aria-hidden="true">←</span> Kembali ke pusat informasi</a>
+    <article class="mt-8"><header class="border-b border-slate-200 pb-8"><p class="text-xs font-bold uppercase tracking-[.16em] text-blue-700">{{ARTICLE_CATEGORY}}</p><p class="muted mt-4 text-sm">{{ARTICLE_PUBLISHED_AT}} <span class="mx-2 text-slate-300">·</span> {{ARTICLE_READ_TIME}} menit baca</p><h1 class="mt-4 text-3xl font-bold leading-tight tracking-tight text-slate-950 sm:text-5xl">{{ARTICLE_TITLE}}</h1><p class="muted mt-5 text-lg leading-8">{{ARTICLE_EXCERPT}}</p><p class="mt-5 text-sm text-slate-600">Oleh <span class="font-semibold text-slate-800">{{ARTICLE_AUTHOR}}</span></p></header>
+    <div class="prose-aster mt-8">{{ARTICLE_BODY_HTML}}</div></article>
+    <aside class="mt-12 rounded-2xl border border-blue-100 bg-blue-50 p-6 sm:p-8"><p class="text-xs font-bold uppercase tracking-[.16em] text-blue-700">Langkah berikutnya</p><h2 class="mt-2 text-xl font-bold text-slate-900">Siap melanjutkan persiapan?</h2><p class="muted mt-2 leading-6">Lihat program belajar yang sesuai dengan tujuan dan tahap persiapanmu.</p><a href="/program" class="btn mt-5">Lihat program <span class="ml-2" aria-hidden="true">→</span></a></aside>
+  </div>
+</main>
+<footer class="border-t border-slate-200 bg-white"><div class="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-8 text-sm muted sm:flex-row sm:justify-between"><span>© {{YEAR}} Aster Academy</span><span>Belajar terarah, melangkah percaya diri.</span></div></footer>
+</body></html>
