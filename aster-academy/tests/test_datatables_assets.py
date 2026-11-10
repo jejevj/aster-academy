@@ -11,6 +11,11 @@ class TestDataTablesAssets(unittest.TestCase):
         self.assertTrue((vendor / "dataTables.min.js").is_file())
         self.assertTrue((vendor / "dataTables.dataTables.min.css").is_file())
 
+    def test_question_table_has_labeled_columns_matching_question_rows(self):
+        content = (TEMPLATES / "admin_question_list.html").read_text()
+        self.assertIn('<th class="px-3 py-4">Posisi</th>', content)
+        self.assertEqual(content.count('<th '), 5)
+
     def test_datatables_templates_load_jquery_before_datatables(self):
         for name in [
             "admin_question_bank.html",
