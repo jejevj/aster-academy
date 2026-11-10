@@ -414,6 +414,7 @@ class App(BaseHTTPRequestHandler):
                     FROM enrollments en JOIN programs p ON p.id=en.program_id LEFT JOIN institutions i ON i.id=p.institution_id WHERE en.user_id=? AND en.status="active"''',(u['id'],)).fetchall()
                 pending=c.execute('SELECT COUNT(*) FROM enrollments WHERE user_id=? AND status="pending"',(u['id'],)).fetchone()[0]
                 recent_attempts = recent_attempt_summaries(c, u['id'])
+                learning_analysis = category_learning_analysis(c, u['id'])
                 recent_results = ''.join(
                     f'<a class="glass card block transition hover:border-blue-300" href="{self.opaque_path("attempt", item["id"], "/tryout/result/{}", c)}"><div class="flex items-center justify-between gap-3"><div><p class="text-sm font-bold text-[#15345d]">{e(item["title"])}</p><p class="muted mt-1 text-sm">Selesai {e(item["finished_at"])}</p></div><div class="text-right"><p class="text-lg font-extrabold text-blue-800">{item["score"]} / {item["total"]}</p><p class="muted text-xs">{item["percentage"]}%</p></div></div></a>'
                     for item in recent_attempts
@@ -423,7 +424,26 @@ class App(BaseHTTPRequestHandler):
                     f'<article class="glass card"><p class="text-sm font-bold text-[#15345d]">{e(item["title"])}</p><p class="muted mt-1 text-sm">{e(item["subject"])} · {e(item["starts_at"])} · {item["duration_min"]} menit</p><p class="muted mt-1 text-xs">Mentor: {e(item["mentor"] or "Aster Academy")}</p></article>'
                     for item in schedule_rows
                 ) or '<p class="muted">Belum ada jadwal kelas. Periksa kembali saat sesi baru diterbitkan.</p>'
-                send('student_dashboard',{'STUDENT_NAME':e(u['name']),'ENROLLED_COURSE_CARDS':self.cards(rows,'program'),'DASHBOARD_STAT_CARDS':'<div class="glass card">Program aktif: '+str(len(rows))+'</div>'+('<div class="glass card">Permintaan akses menunggu persetujuan admin.</div>' if pending else ''),'RECENT_TRYOUT_RESULTS':recent_results,'UPCOMING_CLASSES':upcoming_classes});return
+                if learning_analysis:
+                    weakest = learning_analysis['weakest']
+                    previous = learning_analysis['previous_percentage']
+                    progress_text = (
+                        f'Nilai tryout terakhir {learning_analysis["latest_percentage"]}%; sebelumnya {previous}%.'
+                        if previous is not None
+                        else f'Nilai tryout terakhir {learning_analysis["latest_percentage"]}%.'
+                    )
+                    learning_guidance = (
+                        '<article class="glass card">'
+                        '<p class="tag">REKOMENDASI BELAJAR</p>'
+                        f'<h3 class="mt-3 text-lg font-bold">Perkuat {e(weakest["name"])}</h3>'
+                        f'<p class="muted mt-2">Skor kategori ini {weakest["percentage"]}% ({weakest["score"]:g}/{weakest["max_score"]:g}). {progress_text}</p>'
+                        '<p class="muted mt-2 text-sm">Gunakan hasil ini untuk menentukan materi dan latihan berikutnya; ini bukan prediksi kelulusan.</p>'
+                        '<a class="btn-secondary mt-4 inline-flex" href="/tryout">Latihan kategori terkait</a>'
+                        '</article>'
+                    )
+                else:
+                    learning_guidance = '<article class="glass card"><p class="tag">REKOMENDASI BELAJAR</p><h3 class="mt-3 text-lg font-bold">Belum ada analisis kategori</h3><p class="muted mt-2">Selesaikan tryout yang memakai blueprint kategori untuk memperoleh rekomendasi belajar yang terukur.</p><a class="btn-secondary mt-4 inline-flex" href="/tryout">Mulai tryout</a></article>'
+                send('student_dashboard',{'STUDENT_NAME':e(u['name']),'ENROLLED_COURSE_CARDS':self.cards(rows,'program'),'DASHBOARD_STAT_CARDS':'<div class="glass card">Program aktif: '+str(len(rows))+'</div>'+('<div class="glass card">Permintaan akses menunggu persetujuan admin.</div>' if pending else ''),'RECENT_TRYOUT_RESULTS':recent_results,'LEARNING_GUIDANCE':learning_guidance,'UPCOMING_CLASSES':upcoming_classes});return
             if path.startswith('/belajar/') or path.startswith('/learn/'):
                 if not u:self.redirect('/masuk');return
                 parts=path.strip('/').split('/');slug=parts[1] if len(parts)>1 else '';lid=parts[2] if len(parts)>2 else ''
