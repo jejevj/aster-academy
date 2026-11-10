@@ -85,6 +85,12 @@ def permission_for(method,path,form=None):
         if path.startswith('/admin/modul/'): return 'modules.view'
         if path.startswith('/admin/pelajaran/'): return 'lessons.view'
         if path.startswith('/admin/enrollment'): return 'enrollments.view'
+        if path=='/admin/artikel': return 'articles.view' if method=='GET' else None
+        if path=='/admin/artikel/baru': return 'articles.create' if method=='GET' else None
+        if re.fullmatch(r'/admin/artikel/[^/]+/edit',path): return 'articles.update' if method=='GET' else None
+        if path=='/admin/jadwal': return 'live_sessions.view' if method=='GET' else None
+        if path=='/admin/jadwal/baru': return 'live_sessions.create' if method=='GET' else None
+        if re.fullmatch(r'/admin/jadwal/[^/]+/edit',path): return 'live_sessions.update' if method=='GET' else None
         if path.startswith('/admin/artikel'): return 'articles.view'
         if path.startswith('/admin/jadwal') or path.startswith('/admin/live'): return 'live_sessions.view'
         if path.startswith('/admin/pengguna') or path.startswith('/admin/users'): return 'users.view'
@@ -105,6 +111,12 @@ def permission_for(method,path,form=None):
         if path=='/admin/bank-soal/soal/simpan': return 'questions.update' if form.get('question_id') else 'questions.create'
         if path=='/admin/bank-soal/soal/hapus': return 'questions.delete'
         if path=='/admin/bank-soal/soal/urut': return 'questions.update'
+        if path=='/admin/artikel/simpan': return 'articles.update' if form.get('article_id') else 'articles.create'
+        if path=='/admin/artikel/status': return 'articles.publish'
+        if path=='/admin/artikel/hapus': return 'articles.delete'
+        if path=='/admin/jadwal/simpan': return 'live_sessions.update' if form.get('session_id') else 'live_sessions.create'
+        if path=='/admin/jadwal/status': return 'live_sessions.publish'
+        if path=='/admin/jadwal/hapus': return 'live_sessions.delete'
         for prefix,resource in (('/admin/artikel/','articles'),('/admin/jadwal/','live_sessions'),('/admin/live/','live_sessions'),('/admin/pengguna/','users'),('/admin/users/','users')):
             if path.startswith(prefix):
                 if path.endswith(('/hapus','/delete')): return resource+'.delete'
@@ -122,6 +134,8 @@ def required_permissions(method,path,form=None):
             if primary.startswith(resource+'.') and primary!=resource+'.view':required.append(resource+'.view')
     if method=='POST' and path in ('/admin/kursus/simpan','/admin/programs/save') and form.get('status')=='published':required.append('programs.publish')
     if method=='POST' and path=='/admin/bank-soal/paket/simpan' and form.get('published')=='1':required.append('question_banks.publish')
+    if method=='POST' and path=='/admin/artikel/simpan' and form.get('published')=='1':required.append('articles.publish')
+    if method=='POST' and path=='/admin/jadwal/simpan' and form.get('published')=='1':required.append('live_sessions.publish')
     if method=='POST' and path=='/admin/media/soal':required.append('media.upload')
     return tuple(required)
 
@@ -157,6 +171,12 @@ def init_db():
         program_cols={r['name'] for r in c.execute('PRAGMA table_info(programs)')}
         if 'category' not in program_cols:c.execute("ALTER TABLE programs ADD COLUMN category TEXT NOT NULL DEFAULT ''")
         if 'cover_url' not in program_cols:c.execute("ALTER TABLE programs ADD COLUMN cover_url TEXT NOT NULL DEFAULT ''")
+        article_cols={r['name'] for r in c.execute('PRAGMA table_info(articles)')}
+        if 'updated_at' not in article_cols:c.execute("ALTER TABLE articles ADD COLUMN updated_at TEXT")
+        live_cols={r['name'] for r in c.execute('PRAGMA table_info(live_sessions)')}
+        if 'updated_at' not in live_cols:c.execute("ALTER TABLE live_sessions ADD COLUMN updated_at TEXT")
+        c.execute('CREATE INDEX IF NOT EXISTS idx_articles_public ON articles(published,created_at DESC)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_live_sessions_public ON live_sessions(published,starts_at)')
         if c.execute('SELECT COUNT(*) FROM institutions').fetchone()[0]==0:
             c.executemany('INSERT INTO institutions(slug,name) VALUES (?,?)',[('stis','Polstat STIS'),('stan','PKN STAN'),('ipdn','IPDN'),('stmkg','STMKG')])
         if c.execute('SELECT COUNT(*) FROM programs').fetchone()[0]==0:

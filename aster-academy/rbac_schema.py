@@ -83,6 +83,8 @@ _ROUTES: Final = (
     ("admin.programs", "/admin/program", "Program", "programs.view", "Pembelajaran", 20, "▤"),
     ("admin.question_banks", "/admin/bank-soal", "Bank soal", "question_banks.view", "Evaluasi", 30, "▦"),
     ("admin.categories", "/admin/kategori-soal", "Kategori soal", "question_categories.view", "Evaluasi", 35, "◫"),
+    ("admin.articles", "/admin/artikel", "Artikel", "articles.view", "Operasional", 50, "✎"),
+    ("admin.live_sessions", "/admin/jadwal", "Jadwal", "live_sessions.view", "Operasional", 60, "◷"),
     ("admin.enrollments", "/admin/permintaan-akses", "Permintaan akses", "enrollments.view", "Pembelajaran", 40, "✓"),
     ("admin.roles", "/admin/akses-role", "Akses dan role", "roles.view", "Pengaturan", 80, "♙"),
     ("account.profile", "/profil", "Profil", "profile.view", "Pengaturan", 90, "◎"),
@@ -206,7 +208,7 @@ def ensure_rbac_schema(conn: sqlite3.Connection) -> None:
         # implemented controller stay inactive until their vertical slice exists.
         for key, group, icon in ((row[0], row[4], row[6]) for row in _ROUTES):
             conn.execute("UPDATE route_menu_registry SET group_name=?,icon=?,active=1 WHERE route_key=?", (group, icon, key))
-        conn.execute("UPDATE route_menu_registry SET active=0 WHERE route_key IN ('admin.articles','admin.live_sessions','admin.users')")
+        conn.execute("UPDATE route_menu_registry SET active=0 WHERE route_key='admin.users'")
         # Correct legacy seeds that pointed at non-pages; preserve any later
         # administrator-customized paths.
         conn.execute("UPDATE route_menu_registry SET path='/admin/program',label='Program' WHERE route_key='admin.programs' AND path='/admin/kursus'")

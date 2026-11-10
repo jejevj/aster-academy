@@ -48,7 +48,7 @@ class TestRBACEnforcement(unittest.TestCase):
                 "SELECT route_key, group_name, icon FROM route_menu_registry WHERE active=1 ORDER BY position"
             ).fetchall()
 
-        self.assertEqual(len(rows), 7)
+        self.assertEqual(len(rows), 9)
         self.assertTrue(all(row["group_name"] for row in rows))
         self.assertTrue(all(row["icon"] for row in rows))
 

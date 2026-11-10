@@ -5,7 +5,8 @@ TABLES = {
     'bank': ('question_banks', 'id'), 'course': ('programs', 'id'),
     'module': ('modules', 'id'), 'lesson': ('lessons', 'id'),
     'question': ('questions', 'id'), 'tryout': ('question_sets', 'id'),
-    'attempt': ('attempts', 'id'),
+    'attempt': ('attempts', 'id'), 'article': ('articles', 'id'),
+    'live_session': ('live_sessions', 'id'),
 }
 
 def ensure_schema(conn):

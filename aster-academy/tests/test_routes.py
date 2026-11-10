@@ -27,6 +27,8 @@ class TestOpaqueRouting(unittest.TestCase):
         # Direct access using numeric IDs must be rejected by resolve_public_path
         self.assertIsNone(handler.resolve_public_path("/admin/bank-soal/1"))
         self.assertIsNone(handler.resolve_public_path("/admin/bank-soal/1/edit"))
+        self.assertIsNone(handler.resolve_public_path("/admin/artikel/1/edit"))
+        self.assertIsNone(handler.resolve_public_path("/admin/jadwal/1/edit"))
         self.assertIsNone(handler.resolve_public_path("/admin/bank-soal/1/blueprint"))
         self.assertIsNone(handler.resolve_public_path("/admin/kursus/1/edit"))
         self.assertIsNone(handler.resolve_public_path("/tryout/1/mulai"))

@@ -40,6 +40,8 @@ class App(BaseHTTPRequestHandler):
             with connect() as c: lesson_id=resolve_ref(c,'lesson',match.group(1))
             return path if lesson_id is not None else None
         patterns=[
+            (r'^/admin/artikel/([^/]+)/edit$','article',r'/admin/artikel/{}/edit'),
+            (r'^/admin/jadwal/([^/]+)/edit$','live_session',r'/admin/jadwal/{}/edit'),
             (r'^/admin/bank-soal/([^/]+)/blueprint$','bank',r'/admin/bank-soal/{}/blueprint'),
             (r'^/admin/bank-soal/([^/]+)/edit$','bank',r'/admin/bank-soal/{}/edit'),
             (r'^/admin/bank-soal/([^/]+)/soal/baru$','bank',r'/admin/bank-soal/{}/soal/baru'),
@@ -68,7 +70,7 @@ class App(BaseHTTPRequestHandler):
             if target:return target.format(object_id)
             return f'/tryout/{object_id}/{match.group(2)}'
         # Legacy numeric identifiers in object routes are never accepted.
-        if re.match(r'^/(?:admin/bank-soal|admin/kursus|admin/modul|admin/pelajaran|tryout|pelajaran)/\d+(?:/|$)',path):return None
+        if re.match(r'^/(?:admin/bank-soal|admin/kursus|admin/modul|admin/pelajaran|admin/artikel|admin/jadwal|tryout|pelajaran)/\d+(?:/|$)',path):return None
         if re.fullmatch(r'^/(?:belajar|learn)/[^/]+/\d+$',path):return None
         return path
     def user(self):
@@ -393,7 +395,15 @@ class App(BaseHTTPRequestHandler):
                 if not s:self.send_html('Not found',404);return
                 qs=c.execute('SELECT * FROM questions WHERE set_id=? ORDER BY position,id',(s['id'],)).fetchall();send('tryout_detail',{'TRYOUT_TITLE':e(s['title']),'TRYOUT_DESCRIPTION':e(s['summary']),'TRYOUT_CATEGORY':'Latihan CAT','TRYOUT_ID':str(s['id']),'TRYOUT_STATISTICS':f'<span class="tag">{len(qs)} soal</span><span class="tag">{s["duration_min"]} menit</span>','TRYOUT_SECTIONS':'<p class="muted">Latihan mandiri</p>','TRYOUT_ACCESS_NOTE':'Sesi dan hasil tryout akan tersimpan ke akunmu.' if u else 'Masuk diperlukan untuk memulai tryout dan menyimpan hasilnya.'});return
             if path=='/jadwal':
-                rows=c.execute('SELECT * FROM live_sessions WHERE published=1 AND starts_at>=datetime("now") ORDER BY starts_at').fetchall();send('live_schedule',{'SCHEDULE_EVENTS':''.join(f'<article class="glass card"><p class="tag">{e(x["subject"])}</p><h2 class="mt-3 text-xl font-semibold">{e(x["title"])}</h2><p class="muted mt-2">{e(x["starts_at"])} · {x["duration_min"]} menit · {e(x["mentor"])}</p></article>' for x in rows) or '<p class="muted">Belum ada jadwal kelas.</p>','MONTH_VALUE':e(query.get('month',[''])[0])});return
+                month=query.get('month',[''])[0]
+                args=[];sql='SELECT * FROM live_sessions WHERE published=1 AND starts_at>=datetime("now")'
+                if month:
+                    if not re.fullmatch(r'\d{4}-\d{2}',month):self.send_html('Bulan tidak valid.',400);return
+                    year,mon=map(int,month.split('-'))
+                    if not 1<=mon<=12:self.send_html('Bulan tidak valid.',400);return
+                    next_month=f'{year+1:04}-01-01' if mon==12 else f'{year:04}-{mon+1:02}-01'
+                    sql+=' AND starts_at>=? AND starts_at<?';args.extend([f'{year:04}-{mon:02}-01',next_month])
+                rows=c.execute(sql+' ORDER BY starts_at',args).fetchall();send('live_schedule',{'SCHEDULE_EVENTS':''.join(f'<article class="glass card"><p class="tag">{e(x["subject"])}</p><h2 class="mt-3 text-xl font-semibold">{e(x["title"])}</h2><p class="muted mt-2">{e(x["starts_at"])} · {x["duration_min"]} menit · {e(x["mentor"])}</p></article>' for x in rows) or '<p class="muted">Belum ada jadwal kelas pada periode ini.</p>','MONTH_VALUE':e(month)});return
             if path=='/artikel':
                 term=query.get('q',[''])[0];rows=c.execute('SELECT * FROM articles WHERE published=1 AND (title LIKE ? OR summary LIKE ? OR category LIKE ?) ORDER BY created_at DESC',(f'%{term}%',)*3).fetchall();send('articles',{'ARTICLE_CARDS':''.join(f'<a class="glass card block" href="/artikel/{e(x["slug"])}"><p class="tag">{e(x["category"])}</p><h2 class="mt-3 text-xl font-semibold">{e(x["title"])}</h2><p class="muted mt-2">{e(x["summary"])}</p></a>' for x in rows),'QUERY':e(term),'PAGINATION':''});return
             if path.startswith('/artikel/'):
@@ -489,6 +499,37 @@ class App(BaseHTTPRequestHandler):
                 menu_json=json.dumps(contract['menus'],ensure_ascii=False).replace('<','\\u003c')
                 send('admin_roles',{'ROLE_MATRIX':matrix,'ROLE_NOTICE':'','ROLE_OPTIONS_JSON':role_options,'MENU_TREE_JSON':menu_json})
                 return
+            if path=='/admin/artikel':
+                rows=c.execute('SELECT * FROM articles ORDER BY published DESC,created_at DESC,id DESC').fetchall();html_rows=[]
+                for x in rows:
+                    token=ref_for(c,'article',x['id']);status='Terbit' if x['published'] else 'Draf';actions=[]
+                    if self.can(u,'articles.update'):actions.append(f'<a href="/admin/artikel/{token}/edit">Edit</a>')
+                    if self.can(u,'articles.publish'):actions.append(f'<form method="post" action="/admin/artikel/status" class="inline"><input type="hidden" name="article_id" value="{x["id"]}"><input type="hidden" name="published" value="{0 if x["published"] else 1}"><button type="submit">{"Batalkan terbit" if x["published"] else "Terbitkan"}</button></form>')
+                    if self.can(u,'articles.delete'):actions.append(f'<form method="post" action="/admin/artikel/hapus" class="inline"><input type="hidden" name="article_id" value="{x["id"]}"><button type="submit">Hapus</button></form>')
+                    html_rows.append(f'<tr><td>{e(x["title"])}</td><td>{e(x["category"])}</td><td>{status}</td><td>{e(x["updated_at"] or x["created_at"])}</td><td>{" · ".join(actions) or "—"}</td></tr>')
+                send('admin_articles',{'ARTICLE_ROWS':''.join(html_rows) or '<tr><td colspan="5">Belum ada artikel.</td></tr>','ARTICLE_CREATE_CLASS':'' if self.can(u,'articles.create') else 'hidden'});return
+            if path=='/admin/artikel/baru':
+                send('admin_article_form',{'FORM_HEADING':'Tambah artikel','ARTICLE_ID':'','TITLE':'','SLUG':'','CATEGORY':'','SUMMARY':'','BODY':'','PUBLISHED_CHECKED':'','ARTICLE_PUBLISH_CLASS':'' if self.can(u,'articles.publish') else 'hidden','FORM_ERROR':''});return
+            if path.startswith('/admin/artikel/') and path.endswith('/edit'):
+                article_id=path.split('/')[3];row=c.execute('SELECT * FROM articles WHERE id=?',(article_id,)).fetchone()
+                if not row:self.send_html('Not found',404);return
+                send('admin_article_form',{'FORM_HEADING':'Edit artikel','ARTICLE_ID':str(row['id']),'TITLE':e(row['title']),'SLUG':e(row['slug']),'CATEGORY':e(row['category']),'SUMMARY':e(row['summary']),'BODY':e(row['body']),'PUBLISHED_CHECKED':'checked' if row['published'] else '','ARTICLE_PUBLISH_CLASS':'' if self.can(u,'articles.publish') else 'hidden','FORM_ERROR':''});return
+            if path=='/admin/jadwal':
+                rows=c.execute('SELECT * FROM live_sessions ORDER BY starts_at DESC,id DESC').fetchall();html_rows=[]
+                for x in rows:
+                    token=ref_for(c,'live_session',x['id']);status='Terbit' if x['published'] else 'Draf';actions=[]
+                    if self.can(u,'live_sessions.update'):actions.append(f'<a href="/admin/jadwal/{token}/edit">Edit</a>')
+                    if self.can(u,'live_sessions.publish'):actions.append(f'<form method="post" action="/admin/jadwal/status" class="inline"><input type="hidden" name="session_id" value="{x["id"]}"><input type="hidden" name="published" value="{0 if x["published"] else 1}"><button type="submit">{"Batalkan terbit" if x["published"] else "Terbitkan"}</button></form>')
+                    if self.can(u,'live_sessions.delete'):actions.append(f'<form method="post" action="/admin/jadwal/hapus" class="inline"><input type="hidden" name="session_id" value="{x["id"]}"><button type="submit">Hapus</button></form>')
+                    html_rows.append(f'<tr><td>{e(x["title"])}<br><small>{e(x["subject"])}</small></td><td>{e(x["starts_at"])} · {x["duration_min"]} menit</td><td>{e(x["mentor"])}</td><td>{status}</td><td>{" · ".join(actions) or "—"}</td></tr>')
+                send('admin_live_sessions',{'LIVE_ROWS':''.join(html_rows) or '<tr><td colspan="5">Belum ada jadwal.</td></tr>','LIVE_CREATE_CLASS':'' if self.can(u,'live_sessions.create') else 'hidden'});return
+            if path=='/admin/jadwal/baru':
+                send('admin_live_session_form',{'FORM_HEADING':'Tambah jadwal','SESSION_ID':'','TITLE':'','SUBJECT':'','STARTS_AT':'','DURATION_MIN':'90','MENTOR':'','JOIN_URL':'','PUBLISHED_CHECKED':'','LIVE_PUBLISH_CLASS':'' if self.can(u,'live_sessions.publish') else 'hidden','FORM_ERROR':''});return
+            if path.startswith('/admin/jadwal/') and path.endswith('/edit'):
+                session_id=path.split('/')[3];row=c.execute('SELECT * FROM live_sessions WHERE id=?',(session_id,)).fetchone()
+                if not row:self.send_html('Not found',404);return
+                starts=str(row['starts_at']).replace(' ','T')[:16]
+                send('admin_live_session_form',{'FORM_HEADING':'Edit jadwal','SESSION_ID':str(row['id']),'TITLE':e(row['title']),'SUBJECT':e(row['subject']),'STARTS_AT':e(starts),'DURATION_MIN':str(row['duration_min']),'MENTOR':e(row['mentor']),'JOIN_URL':e(row['join_url']),'PUBLISHED_CHECKED':'checked' if row['published'] else '','LIVE_PUBLISH_CLASS':'' if self.can(u,'live_sessions.publish') else 'hidden','FORM_ERROR':''});return
             registered = c.execute('SELECT route_key,label FROM route_menu_registry WHERE path=? AND active=1', (path,)).fetchone()
             if registered:
                 from services.menu_scaffold import template_name_for_route_key
@@ -745,6 +786,49 @@ class App(BaseHTTPRequestHandler):
                     else: self.send_html('Not found',404);return
             except (ValueError,TypeError) as ex:self.send_html(e(str(ex)),400);return
             self.send_json({'ok':True});return
+        if path=='/admin/artikel/simpan':
+            article_id=form.get('article_id','');title=form.get('title','').strip();slug=form.get('slug','').strip().lower();category=form.get('category','').strip();summary=form.get('summary','').strip();body=form.get('body','').strip();published=form.get('published')=='1'
+            if not title or len(title)>160 or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*',slug) or len(slug)>160 or len(category)>100 or len(summary)>500 or not body or len(body)>20000:self.send_html('Data artikel tidak valid.',400);return
+            if published and not self.can(u,'articles.publish'):self.send_html('Forbidden',403);return
+            if article_id and not article_id.isdigit():self.send_html('Artikel tidak valid.',400);return
+            with connect() as c:
+                try:
+                    if article_id:
+                        if not c.execute('SELECT 1 FROM articles WHERE id=?',(article_id,)).fetchone():self.send_html('Not found',404);return
+                        c.execute('UPDATE articles SET title=?,slug=?,category=?,summary=?,body=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',(title,slug,category,summary,body,int(published),article_id))
+                    else:c.execute('INSERT INTO articles(slug,title,summary,body,category,published,updated_at) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)',(slug,title,summary,body,category,int(published)))
+                except sqlite3.IntegrityError:self.send_html('Slug artikel sudah digunakan.',409);return
+            self.redirect('/admin/artikel');return
+        if path in ('/admin/artikel/status','/admin/artikel/hapus'):
+            article_id=form.get('article_id','')
+            if not article_id.isdigit():self.send_html('Artikel tidak valid.',400);return
+            with connect() as c:
+                if path.endswith('status'):
+                    if form.get('published') not in ('0','1'):self.send_html('Status tidak valid.',400);return
+                    if not c.execute('UPDATE articles SET published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',(int(form['published']),article_id)).rowcount:self.send_html('Not found',404);return
+                elif not c.execute('DELETE FROM articles WHERE id=?',(article_id,)).rowcount:self.send_html('Not found',404);return
+            self.redirect('/admin/artikel');return
+        if path=='/admin/jadwal/simpan':
+            session_id=form.get('session_id','');title=form.get('title','').strip();subject=form.get('subject','').strip();starts=form.get('starts_at','').strip().replace('T',' ');mentor=form.get('mentor','').strip();join_url=form.get('join_url','').strip();published=form.get('published')=='1'
+            try:duration=int(form.get('duration_min','')) ;datetime.strptime(starts,'%Y-%m-%d %H:%M')
+            except ValueError:self.send_html('Waktu atau durasi jadwal tidak valid.',400);return
+            if not title or len(title)>160 or len(subject)>100 or len(mentor)>100 or not 1<=duration<=600 or len(join_url)>500 or (join_url and not re.fullmatch(r'https://[^\s/@]+(?:/[^\s]*)?',join_url)) or (session_id and not session_id.isdigit()):self.send_html('Data jadwal tidak valid.',400);return
+            if published and not self.can(u,'live_sessions.publish'):self.send_html('Forbidden',403);return
+            with connect() as c:
+                if session_id:
+                    if not c.execute('SELECT 1 FROM live_sessions WHERE id=?',(session_id,)).fetchone():self.send_html('Not found',404);return
+                    c.execute('UPDATE live_sessions SET title=?,subject=?,starts_at=?,duration_min=?,mentor=?,join_url=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',(title,subject,starts,duration,mentor,join_url,int(published),session_id))
+                else:c.execute('INSERT INTO live_sessions(title,subject,starts_at,duration_min,mentor,join_url,published,updated_at) VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)',(title,subject,starts,duration,mentor,join_url,int(published)))
+            self.redirect('/admin/jadwal');return
+        if path in ('/admin/jadwal/status','/admin/jadwal/hapus'):
+            session_id=form.get('session_id','')
+            if not session_id.isdigit():self.send_html('Jadwal tidak valid.',400);return
+            with connect() as c:
+                if path.endswith('status'):
+                    if form.get('published') not in ('0','1'):self.send_html('Status tidak valid.',400);return
+                    if not c.execute('UPDATE live_sessions SET published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',(int(form['published']),session_id)).rowcount:self.send_html('Not found',404);return
+                elif not c.execute('DELETE FROM live_sessions WHERE id=?',(session_id,)).rowcount:self.send_html('Not found',404);return
+            self.redirect('/admin/jadwal');return
         if path=='/admin/kategori-soal/simpan':
             key=form.get('key','').strip().lower();name=form.get('name','').strip();description=form.get('description','').strip();parent_id=form.get('parent_id','')
             try:position=int(form.get('position','0'));profile_id=int(form.get('profile_id','0'));item_count=int(form.get('item_count','0'));correct=int(form.get('correct_score','0'));incorrect=int(form.get('incorrect_score','0'));blank=int(form.get('blank_score','0'));maximum=int(form.get('max_score','0'));passing=int(form['passing_score']) if form.get('passing_score','').strip() else None
