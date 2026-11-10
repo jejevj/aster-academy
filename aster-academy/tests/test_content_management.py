@@ -37,6 +37,13 @@ class TestArticleAndLiveManagementContracts(unittest.TestCase):
             indexes = {row["name"] for row in conn.execute("PRAGMA index_list(articles)")}
             self.assertIn("idx_articles_public", indexes)
 
+    def test_content_forms_use_rich_text_editor(self):
+        templates = pathlib.Path(__file__).resolve().parents[1] / "templates"
+        for name in ("admin_article_form.html", "admin_live_session_form.html"):
+            content = (templates / name).read_text()
+            self.assertIn("quill@2.0.3", content)
+            self.assertIn("new Quill", content)
+
     def test_content_publish_requires_dedicated_permission(self):
         self.assertEqual(core.required_permissions("POST", "/admin/artikel/simpan", {"published": "1"}), ("articles.create", "articles.publish"))
         self.assertEqual(core.required_permissions("POST", "/admin/jadwal/simpan", {"session_id": "8", "published": "1"}), ("live_sessions.update", "live_sessions.publish"))

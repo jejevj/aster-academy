@@ -409,7 +409,8 @@ class App(BaseHTTPRequestHandler):
             if path.startswith('/artikel/'):
                 a=c.execute('SELECT * FROM articles WHERE slug=? AND published=1',(path.split('/')[-1],)).fetchone()
                 if not a:self.send_html('Not found',404);return
-                send('article_detail',{'ARTICLE_TITLE':e(a['title']),'ARTICLE_BODY_HTML':e(a['body']).replace('\n','<br>'),'ARTICLE_CATEGORY':e(a['category']),'ARTICLE_EXCERPT':e(a['summary']),'ARTICLE_AUTHOR':'Aster Academy','ARTICLE_PUBLISHED_AT':e(a['created_at']),'ARTICLE_READ_TIME':'3 menit'});return
+                article_body=sanitize_rich_html(a['body']).replace('\n','<br>')
+                send('article_detail',{'ARTICLE_TITLE':e(a['title']),'ARTICLE_BODY_HTML':article_body,'ARTICLE_CATEGORY':e(a['category']),'ARTICLE_EXCERPT':sanitize_rich_html(a['summary']),'ARTICLE_AUTHOR':'Aster Academy','ARTICLE_PUBLISHED_AT':e(a['created_at']),'ARTICLE_READ_TIME':'3 menit'});return
             if path in ('/daftar','/signup'):send('signup',{'AUTH_EXTRA_FIELDS':'','AUTH_INTRO':'Buat akun untuk menyimpan program dan progres belajarmu.','AUTH_SWITCH_TEXT':'Sudah punya akun?','AUTH_SWITCH_LABEL':'Masuk','AUTH_SWITCH_URL':'/masuk','NAME_VALUE':'','EMAIL_VALUE':'','FORM_ERROR':'','PASSWORD_AUTOCOMPLETE':'new-password','SUBMIT_LABEL':'Buat akun'});return
             if path in ('/masuk','/login'):send('login',{'AUTH_EXTRA_FIELDS':'','AUTH_INTRO':'Masuk untuk melanjutkan persiapanmu.','AUTH_SWITCH_TEXT':'Belum punya akun?','AUTH_SWITCH_LABEL':'Daftar','AUTH_SWITCH_URL':'/daftar','EMAIL_VALUE':'','FORM_ERROR':'','PASSWORD_AUTOCOMPLETE':'current-password','SUBMIT_LABEL':'Masuk'});return
             if path in ('/dashboard','/ruang-belajar'):
@@ -787,7 +788,7 @@ class App(BaseHTTPRequestHandler):
             except (ValueError,TypeError) as ex:self.send_html(e(str(ex)),400);return
             self.send_json({'ok':True});return
         if path=='/admin/artikel/simpan':
-            article_id=form.get('article_id','');title=form.get('title','').strip();slug=form.get('slug','').strip().lower();category=form.get('category','').strip();summary=form.get('summary','').strip();body=form.get('body','').strip();published=form.get('published')=='1'
+            article_id=form.get('article_id','');title=re.sub(r'<[^>]*>','',sanitize_rich_html(form.get('title','').strip())).strip();slug=form.get('slug','').strip().lower();category=re.sub(r'<[^>]*>','',sanitize_rich_html(form.get('category','').strip())).strip();summary=sanitize_rich_html(form.get('summary','').strip());body=sanitize_rich_html(form.get('body','').strip());published=form.get('published')=='1'
             if not title or len(title)>160 or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*',slug) or len(slug)>160 or len(category)>100 or len(summary)>500 or not body or len(body)>20000:self.send_html('Data artikel tidak valid.',400);return
             if published and not self.can(u,'articles.publish'):self.send_html('Forbidden',403);return
             if article_id and not article_id.isdigit():self.send_html('Artikel tidak valid.',400);return
