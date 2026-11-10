@@ -410,7 +410,19 @@ class App(BaseHTTPRequestHandler):
                 rows=c.execute('''SELECT p.*,i.name institution,
                     (SELECT COUNT(*) FROM lessons l JOIN modules m ON m.id=l.module_id WHERE m.program_id=p.id) lesson_total,
                     (SELECT COUNT(*) FROM lesson_progress lp JOIN lessons l ON l.id=lp.lesson_id JOIN modules m ON m.id=l.module_id WHERE m.program_id=p.id AND lp.user_id=en.user_id) lesson_done
-                    FROM enrollments en JOIN programs p ON p.id=en.program_id LEFT JOIN institutions i ON i.id=p.institution_id WHERE en.user_id=? AND en.status="active"''',(u['id'],)).fetchall();pending=c.execute('SELECT COUNT(*) FROM enrollments WHERE user_id=? AND status="pending"',(u['id'],)).fetchone()[0];send('student_dashboard',{'STUDENT_NAME':e(u['name']),'ENROLLED_COURSE_CARDS':self.cards(rows,'program'),'DASHBOARD_STAT_CARDS':'<div class="glass card">Program aktif: '+str(len(rows))+'</div>'+('<div class="glass card">Permintaan akses menunggu persetujuan admin.</div>' if pending else ''),'RECENT_TRYOUT_RESULTS':'<p class="muted">Belum ada hasil tryout.</p>','UPCOMING_CLASSES':'<p class="muted">Belum ada jadwal kelas.</p>'});return
+                    FROM enrollments en JOIN programs p ON p.id=en.program_id LEFT JOIN institutions i ON i.id=p.institution_id WHERE en.user_id=? AND en.status="active"''',(u['id'],)).fetchall()
+                pending=c.execute('SELECT COUNT(*) FROM enrollments WHERE user_id=? AND status="pending"',(u['id'],)).fetchone()[0]
+                recent_attempts = recent_attempt_summaries(c, u['id'])
+                recent_results = ''.join(
+                    f'<a class="glass card block transition hover:border-blue-300" href="{self.opaque_path("attempt", item["id"], "/tryout/result/{}", c)}"><div class="flex items-center justify-between gap-3"><div><p class="text-sm font-bold text-[#15345d]">{e(item["title"])}</p><p class="muted mt-1 text-sm">Selesai {e(item["finished_at"])}</p></div><div class="text-right"><p class="text-lg font-extrabold text-blue-800">{item["score"]} / {item["total"]}</p><p class="muted text-xs">{item["percentage"]}%</p></div></div></a>'
+                    for item in recent_attempts
+                ) or '<p class="muted">Belum ada hasil tryout. Mulai latihan untuk melihat perkembangan nilaimu di sini.</p>'
+                schedule_rows = c.execute('SELECT title,subject,starts_at,duration_min,mentor FROM live_sessions WHERE published=1 AND starts_at>=datetime("now") ORDER BY starts_at LIMIT 3').fetchall()
+                upcoming_classes = ''.join(
+                    f'<article class="glass card"><p class="text-sm font-bold text-[#15345d]">{e(item["title"])}</p><p class="muted mt-1 text-sm">{e(item["subject"])} · {e(item["starts_at"])} · {item["duration_min"]} menit</p><p class="muted mt-1 text-xs">Mentor: {e(item["mentor"] or "Aster Academy")}</p></article>'
+                    for item in schedule_rows
+                ) or '<p class="muted">Belum ada jadwal kelas. Periksa kembali saat sesi baru diterbitkan.</p>'
+                send('student_dashboard',{'STUDENT_NAME':e(u['name']),'ENROLLED_COURSE_CARDS':self.cards(rows,'program'),'DASHBOARD_STAT_CARDS':'<div class="glass card">Program aktif: '+str(len(rows))+'</div>'+('<div class="glass card">Permintaan akses menunggu persetujuan admin.</div>' if pending else ''),'RECENT_TRYOUT_RESULTS':recent_results,'UPCOMING_CLASSES':upcoming_classes});return
             if path.startswith('/belajar/') or path.startswith('/learn/'):
                 if not u:self.redirect('/masuk');return
                 parts=path.strip('/').split('/');slug=parts[1] if len(parts)>1 else '';lid=parts[2] if len(parts)>2 else ''

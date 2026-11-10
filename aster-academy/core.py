@@ -20,6 +20,7 @@ from services.question_service import (
     attempt_seconds_remaining, build_attempt_snapshot, ensure_legacy_question_bank,
     parent_bank_options, question_editor_values,
 )
+from services.dashboard import recent_attempt_summaries
 from services.rich_text import RichTextSanitizer, sanitize_rich_html
 from services.menu_service import route_permission
 from repositories.public_reference_repository import ensure_schema as ensure_public_reference_schema
