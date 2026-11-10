@@ -369,6 +369,7 @@ class App(BaseHTTPRequestHandler):
                 if not a:self.send_html('Not found',404);return
                 if a['finished_at']:self.redirect(self.opaque_path('attempt',aid,'/tryout/result/{}',c));return
                 aqs=c.execute('SELECT aq.*,q.answer FROM attempt_questions aq LEFT JOIN questions q ON q.id=aq.question_id WHERE aq.attempt_id=? ORDER BY aq.position',(aid,)).fetchall()
+                len_qs = 0
                 if aqs:
                     idx = max(1, min(int(query.get('n', ['1'])[0]), len(aqs)))
                     aq = aqs[idx - 1]
@@ -389,7 +390,7 @@ class App(BaseHTTPRequestHandler):
                     qs=c.execute('SELECT * FROM questions WHERE set_id=? ORDER BY position,id',(a['set_id'],)).fetchall()
                     if not qs:self.send_html('Tryout ini belum memiliki soal.',409);return
                     idx=max(1,min(int(query.get('n',['1'])[0]),len(qs)));q=qs[idx-1];qid=q['id'];prev=c.execute('SELECT answer FROM attempt_answers WHERE attempt_id=? AND question_id=?',(aid,qid)).fetchone();opts=''.join(f'<label class="glass flex cursor-pointer gap-3 rounded-xl p-4"><input type="radio" name="answer" value="{letter}" {"checked" if prev and prev["answer"]==letter else ""}><span><b>{letter}.</b> {sanitize_rich_html(q["option_"+letter.lower()])}</span></label>' for letter in 'ABCDE' if q['option_'+letter.lower()]);question_html=sanitize_rich_html(q['content_html'] or q['prompt']);len_qs=len(qs)
-                title=c.execute('SELECT title FROM question_sets WHERE id=?',(a['set_id'],)).fetchone()['title'];total_questions=len(aqs) if aqs else len_qs;remaining=attempt_seconds_remaining(c,a);send('tryout_player',{'TRYOUT_TITLE':e(title),'SECTION_TITLE':'Latihan','TIME_REMAINING':f'{remaining//60:02}:{remaining%60:02}','TIME_REMAINING_SECONDS':str(remaining),'QUESTION_NUMBER':str(idx),'QUESTION_TOTAL':str(total_questions),'SECTION_PROGRESS':str(round(idx*100/max(total_questions,1))),'QUESTION_TEXT':question_html,'ANSWER_OPTIONS':opts,'ATTEMPT_ID':str(aid),'QUESTION_ID':str(qid)});return
+                title=c.execute('SELECT title FROM question_sets WHERE id=?',(a['set_id'],)).fetchone()['title'];total_questions=len(aqs) if aqs else len_qs;remaining=attempt_seconds_remaining(c,a);send('tryout_player',{'TRYOUT_TITLE':e(title),'SECTION_TITLE':'Latihan','TIME_REMAINING':f'{remaining//60:02}:{remaining%60:02}','TIME_REMAINING_SECONDS':str(remaining),'QUESTION_NUMBER':str(idx),'QUESTION_TOTAL':str(total_questions),'SECTION_PROGRESS':str(round(idx*100/max(total_questions,1))),'QUESTION_TEXT':question_html,'ANSWER_OPTIONS':opts,'ATTEMPT_ID':str(aid),'ATTEMPT_TOKEN':ref_for(c,'attempt',aid),'CSRF_TOKEN':e(csrf),'QUESTION_ID':str(qid)});return
             if path.startswith('/tryout/'):
                 slug=path.split('/')[-1];s=c.execute('SELECT * FROM question_sets WHERE slug=? AND published=1',(slug,)).fetchone()
                 if not s:self.send_html('Not found',404);return
@@ -861,6 +862,9 @@ class App(BaseHTTPRequestHandler):
                         else:awarded=scoring.get('correct_score',1) if correct else scoring.get('incorrect_score',0)
                         c.execute('''INSERT INTO attempt_answers(attempt_id,question_id,answer,correct,option_key,awarded_score,answer_snapshot) VALUES (?,?,?,?,?,?,?) ON CONFLICT(attempt_id,question_id) DO UPDATE SET answer=excluded.answer,correct=excluded.correct,option_key=excluded.option_key,awarded_score=excluded.awarded_score,answer_snapshot=excluded.answer_snapshot''',(aid,qid,ans,correct,ans,awarded,json.dumps({'option':ans,'correct':bool(correct),'awarded_score':awarded},ensure_ascii=False)))
                     current=valid_ids.get(qid);cur=(current['position']-1) if current else 0
+                    if form.get('autosave') == '1':
+                        self.send_json({'saved': bool(qid in valid_ids and ans in tuple('ABCDE')), 'question_id': qid})
+                        return
                     if path.endswith('/selesai') or form.get('confirm_submit')=='yes':
                         breakdown={};total_score=0
                         for aq in aq_rows:
