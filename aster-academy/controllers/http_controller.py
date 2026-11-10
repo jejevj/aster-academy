@@ -276,6 +276,7 @@ class App(BaseHTTPRequestHandler):
             self.send_html('Forbidden',403);return
         with connect() as c:
             vendor_assets={
+                '/assets/vendor/datatables/jquery-3.7.1.min.js':('static/vendor/datatables/jquery-3.7.1.min.js','text/javascript; charset=utf-8'),
                 '/assets/vendor/datatables/dataTables.min.js':('static/vendor/datatables/dataTables.min.js','text/javascript; charset=utf-8'),
                 '/assets/vendor/datatables/dataTables.dataTables.min.css':('static/vendor/datatables/dataTables.dataTables.min.css','text/css; charset=utf-8'),
             }
@@ -323,7 +324,16 @@ class App(BaseHTTPRequestHandler):
                 if not a:self.send_html('Not found',404);return
                 attempt_items=c.execute('SELECT aq.*,aa.answer,aa.awarded_score FROM attempt_questions aq LEFT JOIN attempt_answers aa ON aa.attempt_id=aq.attempt_id AND aa.question_id=aq.question_id WHERE aq.attempt_id=? ORDER BY aq.position',(aid,)).fetchall()
                 if attempt_items:
-                    blocks=''.join((lambda snap,scoring,x:f'<article class="glass card"><div class="question-rich">{sanitize_rich_html(snap.get('prompt',''))}</div><p class="muted mt-2 text-sm">Jawaban kamu: {e(x['answer'] or 'Kosong')} · Kunci: {e(snap.get('answer','—'))} · Poin: {e(x['awarded_score'] if x['awarded_score'] is not None else 0)}</p><div class="muted mt-2 text-sm">{sanitize_rich_html(snap.get('explanation',''))}</div></article>')(json.loads(x['question_snapshot']),json.loads(x['scoring_snapshot']),x) for x in attempt_items)
+                    def _render_item(aq_row):
+                        snap = json.loads(aq_row['question_snapshot'])
+                        scoring = json.loads(aq_row['scoring_snapshot'])
+                        prompt_html = sanitize_rich_html(snap.get('prompt', ''))
+                        ans_user = e(aq_row['answer'] or 'Kosong')
+                        ans_key = e(snap.get('answer', '—'))
+                        awarded = e(aq_row['awarded_score'] if aq_row['awarded_score'] is not None else 0)
+                        expl_html = sanitize_rich_html(snap.get('explanation', ''))
+                        return f'<article class="glass card"><div class="question-rich">{prompt_html}</div><p class="muted mt-2 text-sm">Jawaban kamu: {ans_user} · Kunci: {ans_key} · Poin: {awarded}</p><div class="muted mt-2 text-sm">{expl_html}</div></article>'
+                    blocks = ''.join(_render_item(x) for x in attempt_items)
                 else:
                     review=c.execute('SELECT q.prompt,q.explanation,aa.answer,aa.correct,q.answer correct_answer FROM attempt_answers aa JOIN questions q ON q.id=aa.question_id WHERE aa.attempt_id=? ORDER BY q.position',(aid,)).fetchall();blocks=''.join(f'<article class="glass card"><p class="font-semibold">{e(x["prompt"])}</p><p class="muted mt-2 text-sm">Jawaban kamu: {e(x["answer"] or "Belum dijawab")} · Kunci: {e(x["correct_answer"])}</p><p class="muted mt-2 text-sm">{e(x["explanation"])}</p></article>' for x in review)
                 rule_snapshot=json.loads(a['rule_snapshot'] or '{}');breakdown=json.loads(a['score_breakdown_snapshot'] or '{}');category_rules=rule_snapshot.get('categories',{});thresholds=rule_snapshot.get('thresholds',[]);profile_meta=rule_snapshot.get('profile') or {};score_cards=[];threshold_checks=[];quota_mismatch=False
@@ -360,7 +370,21 @@ class App(BaseHTTPRequestHandler):
                 if a['finished_at']:self.redirect(self.opaque_path('attempt',aid,'/tryout/result/{}',c));return
                 aqs=c.execute('SELECT aq.*,q.answer FROM attempt_questions aq LEFT JOIN questions q ON q.id=aq.question_id WHERE aq.attempt_id=? ORDER BY aq.position',(aid,)).fetchall()
                 if aqs:
-                    idx=max(1,min(int(query.get('n',['1'])[0]),len(aqs)));aq=aqs[idx-1];qjson=json.loads(aq['question_snapshot']);optjson=json.loads(aq['options_snapshot']);qid=aq['question_id'];prev=c.execute('SELECT answer FROM attempt_answers WHERE attempt_id=? AND question_id=?',(aid,qid)).fetchone();opts=''.join(f'<label class="glass flex cursor-pointer gap-3 rounded-xl p-4"><input type="radio" name="answer" value="{letter}" {"checked" if prev and prev["answer"]==letter else ""}><span><b>{letter}.</b> {sanitize_rich_html(optjson.get(letter,''))}</span></label>' for letter in 'ABCDE' if optjson.get(letter));question_html=sanitize_rich_html(qjson.get('prompt',''))
+                    idx = max(1, min(int(query.get('n', ['1'])[0]), len(aqs)))
+                    aq = aqs[idx - 1]
+                    qjson = json.loads(aq['question_snapshot'])
+                    optjson = json.loads(aq['options_snapshot'])
+                    qid = aq['question_id']
+                    prev = c.execute('SELECT answer FROM attempt_answers WHERE attempt_id=? AND question_id=?', (aid, qid)).fetchone()
+                    opt_list = []
+                    for letter in 'ABCDE':
+                        text_val = optjson.get(letter)
+                        if text_val:
+                            checked_attr = 'checked' if (prev and prev['answer'] == letter) else ''
+                            sanitized_text = sanitize_rich_html(text_val)
+                            opt_list.append(f'<label class="glass flex cursor-pointer gap-3 rounded-xl p-4"><input type="radio" name="answer" value="{letter}" {checked_attr}><span><b>{letter}.</b> {sanitized_text}</span></label>')
+                    opts = ''.join(opt_list)
+                    question_html = sanitize_rich_html(qjson.get('prompt', ''))
                 else:
                     qs=c.execute('SELECT * FROM questions WHERE set_id=? ORDER BY position,id',(a['set_id'],)).fetchall()
                     if not qs:self.send_html('Tryout ini belum memiliki soal.',409);return
@@ -423,7 +447,18 @@ class App(BaseHTTPRequestHandler):
                 stats=''.join(f'<article class="glass card"><p class="muted text-sm">{label}</p><p class="mt-2 text-3xl font-extrabold text-[#15345d]">{value}</p><p class="muted mt-1 text-xs">{note}</p></article>' for label,value,note in metric_rows)
                 send('admin_dashboard',{'ADMIN_COURSE_ROWS':rows if show_programs else '', 'ADMIN_RECENT_ACTIVITY':activity if show_enrollments else '', 'ADMIN_PROGRAM_BLOCK_CLASS':'' if show_programs else 'hidden','ADMIN_ENROLLMENT_BLOCK_CLASS':'' if show_enrollments else 'hidden','ADMIN_STATS':stats});return
             if path=='/admin/akses-role':
-                matrix=self.role_matrix(c); from services.menu_service import role_menu_tree; contract=role_menu_tree(c,query.get('role',['admin'])[0]); role_options=''.join(f'<option value="{e(x["key"])}" {'selected' if x["key"]==query.get('role',['admin'])[0] else ''}>{e(x["label"])}</option>' for x in contract['roles']); menu_json=json.dumps(contract['menus'],ensure_ascii=False).replace('<','\\u003c'); send('admin_roles',{'ROLE_MATRIX':matrix,'ROLE_NOTICE':'','ROLE_OPTIONS_JSON':role_options,'MENU_TREE_JSON':menu_json});return
+                matrix=self.role_matrix(c)
+                from services.menu_service import role_menu_tree
+                curr_role = query.get('role', ['admin'])[0]
+                contract=role_menu_tree(c, curr_role)
+                role_opts_list = []
+                for x in contract['roles']:
+                    sel_attr = 'selected' if x['key'] == curr_role else ''
+                    role_opts_list.append(f'<option value="{e(x["key"])}" {sel_attr}>{e(x["label"])}</option>')
+                role_options = ''.join(role_opts_list)
+                menu_json=json.dumps(contract['menus'],ensure_ascii=False).replace('<','\\u003c')
+                send('admin_roles',{'ROLE_MATRIX':matrix,'ROLE_NOTICE':'','ROLE_OPTIONS_JSON':role_options,'MENU_TREE_JSON':menu_json})
+                return
             if path=='/admin/kategori-soal':
                 profiles=c.execute('SELECT * FROM exam_rule_profiles WHERE active=1 ORDER BY year DESC,id').fetchall()
                 profile_key=query.get('profile',[''])[0]
@@ -469,9 +504,14 @@ class App(BaseHTTPRequestHandler):
                 profile_options=''.join(f'<option value="{x["id"]}" {"selected" if bp and bp["profile_id"]==x["id"] else ""}>{e(x["name"])}</option>' for x in profiles)
                 send('admin_tryout_blueprint',{'SET_ID':str(sid),'BLUEPRINT_TITLE':e(bp['name'] if bp else s['title']+' · Tryout'),'DURATION_MINUTES':str(bp['duration_min'] if bp and bp['duration_min'] else s['duration_min']),'MODE_RANDOM_CHECKED':'checked' if bp and bp['selection_mode']=='random' else '','BLUEPRINT_CATEGORY_ROWS':category_rows,'AVAILABLE_CATEGORY_OPTIONS':available,'CATEGORY_COUNT':str(len(selected)),'EXAM_PROFILE_OPTIONS':profile_options,'FORM_ERROR':''});return
             if path=='/admin/bank-soal':
-                
                 sets=c.execute('''SELECT s.*,COUNT(DISTINCT q.id) question_count,COUNT(DISTINCT a.id) attempt_count FROM question_sets s LEFT JOIN questions q ON q.set_id=s.id LEFT JOIN attempts a ON a.set_id=s.id GROUP BY s.id ORDER BY s.id DESC''').fetchall()
-                rows=''.join(f'<tr><td class="px-5 py-4"><a class="font-semibold text-blue-800" href="/admin/bank-soal/{x["id"]}">{e(x["title"])}</a><p class="mt-1 text-sm text-slate-500">{e(x["slug"])}</p></td><td class="px-5 py-4">{x["question_count"]}</td><td class="px-5 py-4">{x["duration_min"]} menit</td><td class="px-5 py-4">{"Terbit" if x["published"] else "Draft"}</td><td class="px-5 py-4">{x["attempt_count"]}</td><td class="px-5 py-4"><div class="flex flex-wrap gap-3"><a class="font-semibold text-blue-700" href="/admin/bank-soal/{x["id"]}">Kelola soal</a>{f'<a class="font-semibold text-blue-700" href="/admin/bank-soal/{x["id"]}/blueprint">Blueprint</a>' if self.can(u,"question_banks.update") else ""}</div></td></tr>' for x in sets)
+                row_items = []
+                can_update = self.can(u, "question_banks.update")
+                for x in sets:
+                    status_lbl = "Terbit" if x["published"] else "Draft"
+                    bp_link = f'<a class="font-semibold text-blue-700" href="/admin/bank-soal/{x["id"]}/blueprint">Blueprint</a>' if can_update else ""
+                    row_items.append(f'<tr><td class="px-5 py-4"><a class="font-semibold text-blue-800" href="/admin/bank-soal/{x["id"]}">{e(x["title"])}</a><p class="mt-1 text-sm text-slate-500">{e(x["slug"])}</p></td><td class="px-5 py-4">{x["question_count"]}</td><td class="px-5 py-4">{x["duration_min"]} menit</td><td class="px-5 py-4">{status_lbl}</td><td class="px-5 py-4">{x["attempt_count"]}</td><td class="px-5 py-4"><div class="flex flex-wrap gap-3"><a class="font-semibold text-blue-700" href="/admin/bank-soal/{x["id"]}">Kelola soal</a>{bp_link}</div></td></tr>')
+                rows=''.join(row_items)
                 send('admin_question_bank',{'BANK_ROWS':rows});return
             if path=='/admin/bank-soal/baru':
                 
@@ -489,9 +529,12 @@ class App(BaseHTTPRequestHandler):
                 bank=c.execute('SELECT id FROM question_banks WHERE legacy_question_set_id=?',(sid,)).fetchone();qs=c.execute('SELECT q.*,bm.position bank_position,cat.name category_name,COUNT(aa.question_id) answer_count FROM question_bank_memberships bm JOIN questions q ON q.id=bm.question_id LEFT JOIN question_categories cat ON cat.id=q.category_id LEFT JOIN attempt_answers aa ON aa.question_id=q.id WHERE bm.bank_id=? GROUP BY q.id ORDER BY bm.position,q.position,q.id',(bank['id'] if bank else -1,)).fetchall()
                 locked=c.execute('SELECT COUNT(*) FROM attempts WHERE set_id=?',(sid,)).fetchone()[0]
                 row_html=[]
+                can_update_q = self.can(u, 'questions.update')
+                can_delete_q = self.can(u, 'questions.delete')
                 for x in qs:
-                    edit_action=(f'<a class="font-semibold text-blue-700" href="/admin/bank-soal/soal/{x["id"]}/edit">Edit →</a>' if self.can(u,'questions.update') else '—')
-                    delete_action=(f'<form method="post" action="/admin/bank-soal/soal/hapus"><input type="hidden" name="question_id" value="{x["id"]}"><button class="font-semibold text-rose-600" type="submit" onclick="return confirm(&amp;quot;Hapus soal ini?&amp;quot;)" {'disabled title=\'Paket dengan riwayat attempt dikunci\'' if locked else ''}>Hapus</button></form>' if self.can(u,'questions.delete') else '—')
+                    edit_action = (f'<a class="font-semibold text-blue-700" href="/admin/bank-soal/soal/{x["id"]}/edit">Edit →</a>' if can_update_q else '—')
+                    dis_attr = "disabled title='Paket dengan riwayat attempt dikunci'" if locked else ""
+                    delete_action = (f'<form method="post" action="/admin/bank-soal/soal/hapus"><input type="hidden" name="question_id" value="{x["id"]}"><button class="font-semibold text-rose-600" type="submit" onclick="return confirm(&quot;Hapus soal ini?&quot;)" {dis_attr}>Hapus</button></form>' if can_delete_q else '—')
                     row_html.append(f'<tr data-question-id="{x["id"]}"><td class="px-3 py-4"><button type="button" class="drag-handle cursor-grab text-slate-500" draggable="true" aria-label="Seret untuk mengurutkan soal" title="Seret untuk mengurutkan soal">⠿</button></td><td>{x["bank_position"]}</td><td class="px-5 py-4"><div class="question-preview max-w-2xl font-semibold leading-6 text-slate-800">{sanitize_rich_html(x["content_html"] or x["prompt"])}</div><p class="mt-1 text-xs text-slate-500">{e(x["category_name"] or "Belum diklasifikasikan")} · Posisi {x["bank_position"]} · Kunci {e(x["answer"])}</p></td><td class="px-5 py-4">{edit_action}</td><td class="px-5 py-4">{delete_action}</td></tr>')
                 rows=''.join(row_html)
                 send('admin_question_list',{'SET_TITLE':e(s['title']),'SET_ID':str(sid),'SET_SUMMARY':e(s['summary']),'SET_STATUS':'Terbit' if s['published'] else 'Draft','QUESTION_ROWS':rows,'ATTEMPT_COUNT':str(locked),'BANK_ERROR':'','LOCK_NOTICE':'<div class="notice mt-5">Paket ini memiliki riwayat attempt. Paket dan soal dikunci agar skor, jawaban, serta pembahasan lama tidak berubah.</div>' if locked else '', 'DELETE_DISABLED':'disabled' if locked else '', 'DELETE_NOTE':'Riwayat tryout mengunci paket.' if locked else 'Paket tanpa riwayat dapat dihapus beserta soal.'});return
@@ -610,7 +653,9 @@ class App(BaseHTTPRequestHandler):
                     except sqlite3.IntegrityError:self.send_html('Email sudah terdaftar. <a href="/login">Masuk</a>',409);return
                 else:
                     row=c.execute('SELECT * FROM users WHERE email=?',(email,)).fetchone()
-                    if not row or not verify(pw,row['password_hash']):self.send_html('Email atau kata sandi salah. <a href="/login">Coba lagi</a>',401);return
+                    if not row or not verify(pw,row['password_hash']):
+                        time.sleep(0.5)
+                        self.send_html('Email atau kata sandi salah. <a href="/login">Coba lagi</a>',401);return
                     uid=row['id']
             cookies=self.issue_session(uid);self.send_response(303);self.send_header('Location','/dashboard');[self.send_header('Set-Cookie',f'{k}={v}') for k,v in cookies];self.end_headers();return
         if path in ('/profil/update','/profil/password'):
